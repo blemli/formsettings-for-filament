@@ -2,7 +2,7 @@
 
 All notable changes to `formsettings-for-filament` will be documented in this file.
 
-## Unreleased
+## v0.1.1 - 2026-07-30
 
 - `formsettings:uninstall` now removes everything the installer published: the timestamped migration copy in `database/migrations` and the Filament assets under `public/{css,js}/blemli/formsettings-for-filament/` (empty `blemli` parent dirs are cleaned up too)
 - Artisan command output is no longer translated — console output is always English, independent of the app locale

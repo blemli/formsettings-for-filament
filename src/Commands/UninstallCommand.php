@@ -4,6 +4,7 @@ namespace Blemli\FormSettings\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Schema;
 
 use function Laravel\Prompts\confirm;
@@ -50,8 +51,51 @@ class UninstallCommand extends Command
             }
         }
 
-        $this->info('formsettings-for-filament was uninstalled. Finish with: composer remove blemli/formsettings-for-filament');
+        $registrations = $this->panelProviderRegistrations();
+
+        if ($registrations !== []) {
+            $this->warn('FormSettingsPlugin is still registered in your panel provider(s) — remove the ->plugin(FormSettingsPlugin::make()...) call or the app will crash after composer remove:');
+
+            foreach ($registrations as $location) {
+                $this->line("  - {$location}");
+            }
+        }
+
+        if (! $this->option('force') && confirm('Run "composer remove blemli/formsettings-for-filament" now?', default: $registrations === [])) {
+            Process::path(base_path())
+                ->forever()
+                ->run(['composer', 'remove', 'blemli/formsettings-for-filament'], fn (string $type, string $output) => $this->output->write($output));
+
+            $this->info('formsettings-for-filament was uninstalled.');
+        } else {
+            $this->info('formsettings-for-filament was uninstalled. Finish with: composer remove blemli/formsettings-for-filament');
+        }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Find FormSettingsPlugin registrations in the app's providers so
+     * the user can remove them before the package code disappears.
+     *
+     * @return array<string>
+     */
+    protected function panelProviderRegistrations(): array
+    {
+        $locations = [];
+
+        if (! File::isDirectory(app_path('Providers'))) {
+            return $locations;
+        }
+
+        foreach (File::allFiles(app_path('Providers')) as $file) {
+            foreach (explode("\n", File::get($file->getPathname())) as $index => $line) {
+                if (str_contains($line, 'FormSettingsPlugin')) {
+                    $locations[] = $file->getPathname() . ':' . ($index + 1);
+                }
+            }
+        }
+
+        return $locations;
     }
 }

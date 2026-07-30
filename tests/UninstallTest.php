@@ -47,6 +47,7 @@ afterEach(function () {
     File::deleteDirectory(resource_path('views/vendor/formsettings-for-filament'));
     File::deleteDirectory(public_path('css/blemli'));
     File::deleteDirectory(public_path('js/blemli'));
+    File::deleteDirectory(app_path('Providers/Filament'));
 });
 
 it('removes every published artifact on uninstall', function () {
@@ -61,6 +62,17 @@ it('removes every published artifact on uninstall', function () {
     expect(File::isDirectory(public_path('css/blemli')))->toBeFalse()
         ->and(File::isDirectory(public_path('js/blemli')))->toBeFalse()
         ->and(Schema::hasTable('formsettings'))->toBeFalse();
+});
+
+it('points to panel providers that still register the plugin', function () {
+    $provider = app_path('Providers/Filament/AdminPanelProvider.php');
+    File::ensureDirectoryExists(dirname($provider));
+    File::put($provider, "<?php\n\n// ...\n\$panel->plugin(FormSettingsPlugin::make());\n");
+
+    $this->artisan('formsettings:uninstall', ['--force' => true])
+        ->expectsOutputToContain('FormSettingsPlugin is still registered')
+        ->expectsOutputToContain($provider . ':4')
+        ->assertSuccessful();
 });
 
 it('prints english output regardless of the app locale', function () {

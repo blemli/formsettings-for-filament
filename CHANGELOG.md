@@ -2,6 +2,10 @@
 
 All notable changes to `formsettings-for-filament` will be documented in this file.
 
+## v0.1.2 - 2026-07-30
+
+- `formsettings:uninstall` now points to the exact `file:line` of any remaining `FormSettingsPlugin` registration in the app's providers (removing it prevents the post-uninstall crash) and offers to run `composer remove blemli/formsettings-for-filament` directly (`--force` keeps printing the hint instead)
+
 ## v0.1.1 - 2026-07-30
 
 - `formsettings:uninstall` now removes everything the installer published: the timestamped migration copy in `database/migrations` and the Filament assets under `public/{css,js}/blemli/formsettings-for-filament/` (empty `blemli` parent dirs are cleaned up too)

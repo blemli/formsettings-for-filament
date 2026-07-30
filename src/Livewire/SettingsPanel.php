@@ -89,6 +89,10 @@ class SettingsPanel extends Component
         $this->entryPoint = ($this->entryPoint === $name) ? null : $name;
 
         $this->persistSettings();
+
+        if ($this->entryPoint !== null) {
+            $this->dispatch('formsettings-entry-changed');
+        }
     }
 
     public function updatedAction(): void

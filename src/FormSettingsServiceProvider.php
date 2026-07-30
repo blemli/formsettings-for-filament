@@ -72,14 +72,24 @@ class FormSettingsServiceProvider extends PackageServiceProvider
             $field->disabled(fn (Field $component): bool => $manager()->fieldHidden($component));
             $field->autofocus(fn (Field $component): bool => $manager()->fieldIsEntryPoint($component));
 
-            $tabIndex = fn (Field $component): array => ($index = $manager()->fieldTabIndex($component)) === null
-                ? []
-                : ['tabindex' => $index];
+            $attributes = function (Field $component) use ($manager): array {
+                $attributes = [];
+
+                if (($index = $manager()->fieldTabIndex($component)) !== null) {
+                    $attributes['tabindex'] = $index;
+                }
+
+                if ($manager()->fieldIsEntryPoint($component)) {
+                    $attributes['data-formsettings-entry'] = 'true';
+                }
+
+                return $attributes;
+            };
 
             if (method_exists($field, 'extraInputAttributes')) {
-                $field->extraInputAttributes($tabIndex, merge: true);
+                $field->extraInputAttributes($attributes, merge: true);
             } else {
-                $field->extraAttributes($tabIndex, merge: true);
+                $field->extraAttributes($attributes, merge: true);
             }
         });
     }

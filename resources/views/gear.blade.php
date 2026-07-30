@@ -15,7 +15,7 @@
         x-on:formsettings-updated.window="$wire.$refresh()"
         @if ($selectedLabel) data-formsettings-selected-label="{{ $selectedLabel }}" @endif
     >
-        <x-filament::dropdown placement="bottom-end" shift width="sm">
+        <x-filament::dropdown placement="bottom-end" shift width="sm" max-height="32rem">
             <x-slot name="trigger">
                 <x-filament::icon-button
                     icon="heroicon-o-cog-6-tooth"

@@ -107,7 +107,7 @@
                 <label class="fi-ta-col-manager-label">
                     <x-filament::link
                         tag="button"
-                        wire:click="applyPreset(@js($preset))"
+                        wire:click="applyPreset({{ \Illuminate\Support\Js::from($preset) }})"
                     >
                         {{ $preset }}
                     </x-filament::link>

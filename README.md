@@ -1,87 +1,38 @@
-# rule your forms
+# formsettings-for-filament
+
+> rule your forms
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/blemli/formsettings-for-filament.svg?style=flat-square)](https://packagist.org/packages/blemli/formsettings-for-filament)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/blemli/formsettings-for-filament/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/blemli/formsettings-for-filament/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/blemli/formsettings-for-filament/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/blemli/formsettings-for-filament/actions?query=workflow%3A"Fix+PHP+code+styling"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/blemli/formsettings-for-filament.svg?style=flat-square)](https://packagist.org/packages/blemli/formsettings-for-filament)
 
+A gear on your form pages that lets every user tune the form like the table column selector: reorder the tab order, hide optional fields, pick an autofocus entry point, and choose what the submit button does (save / save & next / save & back, `cmd+enter` included).
 
-
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
+![formsettings panel](docs/screenshot-dark.png)
 
 ## Installation
 
-You can install the package via composer:
-
 ```bash
 composer require blemli/formsettings-for-filament
-```
-
-> [!IMPORTANT]
-> If you have not set up a custom theme and are using Filament Panels follow the instructions in the [Filament Docs](https://filamentphp.com/docs/4.x/styling/overview#creating-a-custom-theme) first.
-
-After setting up a custom theme add the plugin's views to your theme css file or your app's css file if using the standalone packages.
-
-```css
-@source '../../../../vendor/blemli/formsettings-for-filament/resources/**/*.blade.php';
-```
-
-You can publish and run the migrations with:
-
-```bash
-php artisan vendor:publish --tag="formsettings-for-filament-migrations"
-php artisan migrate
-```
-
-You can publish the config file with:
-
-```bash
-php artisan vendor:publish --tag="formsettings-for-filament-config"
-```
-
-Optionally, you can publish the views using
-
-```bash
-php artisan vendor:publish --tag="formsettings-for-filament-views"
-```
-
-This is the contents of the published config file:
-
-```php
-return [
-];
+php artisan formsettings-for-filament:install   # publishes config + migration (only needed with persist())
 ```
 
 ## Usage
 
 ```php
-$formSettings = new Blemli\FormSettings();
-echo $formSettings->echoPhrase('Hello, Blemli!');
+use Blemli\FormSettings\FormSettingsPlugin;
+
+$panel->plugin(
+    FormSettingsPlugin::make()
+        ->globally()   // gear on all Create/Edit pages …
+        ->persist()    // … settings per user in the DB instead of the session
+        ->presets()    // … named presets
+);
 ```
 
-## Testing
-
-```bash
-composer test
-```
-
-## Changelog
-
-Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
-
-## Contributing
-
-Please see [CONTRIBUTING](.github/CONTRIBUTING.md) for details.
-
-## Security Vulnerabilities
-
-Please review [our security policy](.github/SECURITY.md) on how to report security vulnerabilities.
-
-## Credits
-
-- [grafst](https://github.com/blemli)
-- [All Contributors](../../contributors)
+Without `globally()`, opt single pages in with the `Blemli\FormSettings\Concerns\HasFormSettings` trait.
+Uninstall cleanly with `php artisan formsettings:uninstall`.
 
 ## License
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+MIT — see [LICENSE](LICENSE.md).

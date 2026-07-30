@@ -1,12 +1,12 @@
 <?php
 
-namespace VendorName\Skeleton\Commands;
+namespace Blemli\FormSettings\Commands;
 
 use Illuminate\Console\Command;
 
-class SkeletonCommand extends Command
+class FormSettingsCommand extends Command
 {
-    public $signature = 'skeleton';
+    public $signature = 'formsettings-for-filament';
 
     public $description = 'My command';
 

@@ -1,15 +1,15 @@
 <?php
 
-namespace VendorName\Skeleton;
+namespace Blemli\FormSettings;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
 
-class SkeletonPlugin implements Plugin
+class FormSettingsPlugin implements Plugin
 {
     public function getId(): string
     {
-        return 'skeleton';
+        return 'formsettings-for-filament';
     }
 
     public function register(Panel $panel): void

@@ -101,6 +101,18 @@ class FormSettingsServiceProvider extends PackageServiceProvider
     protected function configureActions(): void
     {
         Action::configureUsing(function (Action $action): void {
+            if ($action->getName() === 'createAnother') {
+                $action->hidden(function (): bool {
+                    $manager = app(FormSettings::class);
+                    $livewire = Livewire::current();
+
+                    return $manager->isEnabledFor($livewire)
+                        && $manager->selectedAction($livewire) === 'create_next';
+                });
+
+                return;
+            }
+
             if (! in_array($action->getName(), ['save', 'create'], true)) {
                 return;
             }

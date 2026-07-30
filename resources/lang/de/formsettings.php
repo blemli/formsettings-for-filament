@@ -18,7 +18,7 @@ return [
         'save_next' => 'Speichern & weiter',
         'save_back' => 'Speichern & zurück',
         'create' => 'Erstellen',
-        'create_next' => 'Erstellen & weiteres erstellen',
+        'create_next' => 'Erstellen & weiterer Eintrag',
         'create_back' => 'Erstellen & zurück',
     ],
 

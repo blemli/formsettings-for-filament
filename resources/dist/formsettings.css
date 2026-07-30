@@ -5,3 +5,7 @@
 .dark .fi-dropdown-panel:has(> .formsettings-panel) {
     border-color: rgb(255 255 255 / 0.15);
 }
+
+.formsettings-panel {
+    padding: 1.5rem;
+}

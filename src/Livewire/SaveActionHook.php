@@ -8,11 +8,18 @@ use Filament\Resources\Pages\CreateRecord;
 use Filament\Resources\Pages\EditRecord;
 use Livewire\ComponentHook;
 
+use function Livewire\wrap;
+
 class SaveActionHook extends ComponentHook
 {
     /**
      * Reroute the page's submit method to the save action the user
      * selected in the formsettings panel.
+     *
+     * The page method is invoked through wrap() so a ValidationException
+     * is converted into component errors exactly like a native call.
+     * After a wrapped call the error bag decides whether the submit
+     * succeeded — only then is the custom redirect applied.
      */
     public function call(string $method, array $params, callable $returnEarly): void
     {
@@ -31,33 +38,45 @@ class SaveActionHook extends ComponentHook
     {
         $action = $this->selectedAction($page);
 
-        if ($action === 'save_next') {
-            $page->save(shouldRedirect: false);
-            $this->redirect($page, RecordNavigator::nextUrl($page) ?? RecordNavigator::indexUrl($page));
-            $returnEarly(null);
+        if ($action === null) {
+            return;
         }
 
-        if ($action === 'save_back') {
-            $page->save(shouldRedirect: false);
-            $this->redirect($page, RecordNavigator::indexUrl($page));
-            $returnEarly(null);
+        wrap($page)->save(false);
+
+        if ($page->getErrorBag()->isEmpty()) {
+            $this->redirect($page, match ($action) {
+                'save_next' => RecordNavigator::nextUrl($page) ?? RecordNavigator::indexUrl($page),
+                'save_back' => RecordNavigator::indexUrl($page),
+                default => null,
+            });
         }
+
+        $returnEarly(null);
     }
 
     protected function handleCreate(CreateRecord $page, callable $returnEarly): void
     {
         $action = $this->selectedAction($page);
 
-        if ($action === 'create_next') {
-            $page->create(another: true);
-            $returnEarly(null);
+        if ($action === null) {
+            return;
         }
 
-        if ($action === 'create_back') {
-            $page->create();
-            $this->redirect($page, RecordNavigator::indexUrl($page));
+        if ($action === 'create_next') {
+            wrap($page)->create(true);
             $returnEarly(null);
+
+            return;
         }
+
+        wrap($page)->create();
+
+        if ($page->getErrorBag()->isEmpty()) {
+            $this->redirect($page, RecordNavigator::indexUrl($page));
+        }
+
+        $returnEarly(null);
     }
 
     protected function selectedAction(object $page): ?string

@@ -25,6 +25,15 @@
         }
     }
 
+    let userInteracted = false
+
+    const markInteraction = () => {
+        userInteracted = true
+    }
+
+    window.addEventListener('pointerdown', markInteraction, { capture: true })
+    window.addEventListener('keydown', markInteraction, { capture: true })
+
     const focusEntryPoint = () => {
         const marked = document.querySelector('[data-formsettings-entry]')
 
@@ -36,7 +45,7 @@
             ? marked
             : marked.querySelector('input, select, textarea, button, [tabindex]')
 
-        if (!target) {
+        if (!target || document.activeElement === target) {
             return
         }
 
@@ -44,9 +53,23 @@
         target.select?.()
     }
 
+    // Filament (and other plugins) may focus their own elements shortly
+    // after load, so the entry point re-claims focus in stages until the
+    // user interacts.
+    const claimFocus = () => {
+        for (const delay of [0, 150, 400, 800]) {
+            setTimeout(() => {
+                if (!userInteracted) {
+                    focusEntryPoint()
+                }
+            }, delay)
+        }
+    }
+
     const onPageReady = () => {
+        userInteracted = false
         applyLabel()
-        setTimeout(focusEntryPoint, 50)
+        claimFocus()
     }
 
     document.addEventListener('livewire:init', () => {

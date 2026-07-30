@@ -26,6 +26,7 @@
     }
 
     let userInteracted = false
+    let guardUntil = 0
 
     const markInteraction = () => {
         userInteracted = true
@@ -34,16 +35,20 @@
     window.addEventListener('pointerdown', markInteraction, { capture: true })
     window.addEventListener('keydown', markInteraction, { capture: true })
 
-    const focusEntryPoint = () => {
+    const entryTarget = () => {
         const marked = document.querySelector('[data-formsettings-entry]')
 
         if (!marked) {
-            return
+            return null
         }
 
-        const target = marked.matches('input, select, textarea, button')
+        return marked.matches('input, select, textarea, button')
             ? marked
             : marked.querySelector('input, select, textarea, button, [tabindex]')
+    }
+
+    const focusEntryPoint = () => {
+        const target = entryTarget()
 
         if (!target || document.activeElement === target) {
             return
@@ -53,23 +58,39 @@
         target.select?.()
     }
 
-    // Filament (and other plugins) may focus their own elements shortly
-    // after load, so the entry point re-claims focus in stages until the
-    // user interacts.
-    const claimFocus = () => {
-        for (const delay of [0, 150, 400, 800]) {
-            setTimeout(() => {
-                if (!userInteracted) {
+    // Other scripts (Filament, plugins, native autofocus) may focus their
+    // own element at any point after load — the timing differs per
+    // browser. Instead of guessing delays, watch focus changes for a
+    // short window and take focus back whenever it was moved
+    // programmatically. Real user interaction ends the guard instantly.
+    window.addEventListener(
+        'focusin',
+        (event) => {
+            if (userInteracted || performance.now() > guardUntil) {
+                return
+            }
+
+            const target = entryTarget()
+
+            if (!target || event.target === target) {
+                return
+            }
+
+            requestAnimationFrame(() => {
+                if (!userInteracted && performance.now() <= guardUntil) {
                     focusEntryPoint()
                 }
-            }, delay)
-        }
-    }
+            })
+        },
+        { capture: true },
+    )
 
     const onPageReady = () => {
         userInteracted = false
+        guardUntil = performance.now() + 2500
         applyLabel()
-        claimFocus()
+        focusEntryPoint()
+        setTimeout(focusEntryPoint, 150)
     }
 
     document.addEventListener('livewire:init', () => {

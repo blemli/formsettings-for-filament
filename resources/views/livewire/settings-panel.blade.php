@@ -4,7 +4,7 @@
     use function Filament\Support\generate_icon_html;
 @endphp
 
-<div class="fi-ta-col-manager">
+<div class="fi-ta-col-manager formsettings-panel">
     <div class="fi-ta-col-manager-header">
         <h3 class="fi-ta-col-manager-heading">
             {{ __('formsettings-for-filament::formsettings.heading') }}

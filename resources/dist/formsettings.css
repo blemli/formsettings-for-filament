@@ -1,0 +1,7 @@
+.fi-dropdown-panel:has(> .formsettings-panel) {
+    border: 1px solid rgb(0 0 0 / 0.12);
+}
+
+.dark .fi-dropdown-panel:has(> .formsettings-panel) {
+    border-color: rgb(255 255 255 / 0.15);
+}

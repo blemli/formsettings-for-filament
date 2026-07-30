@@ -8,6 +8,7 @@ use Blemli\FormSettings\Livewire\SettingsPanel;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
 use Filament\Support\Assets\Asset;
+use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
 use Livewire\Livewire;
@@ -116,6 +117,7 @@ class FormSettingsServiceProvider extends PackageServiceProvider
     {
         return [
             Js::make('formsettings-scripts', __DIR__ . '/../resources/dist/formsettings.js'),
+            Css::make('formsettings-styles', __DIR__ . '/../resources/dist/formsettings.css'),
         ];
     }
 

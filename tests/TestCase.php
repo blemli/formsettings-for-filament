@@ -4,6 +4,7 @@ namespace Blemli\FormSettings\Tests;
 
 use BladeUI\Heroicons\BladeHeroiconsServiceProvider;
 use BladeUI\Icons\BladeIconsServiceProvider;
+use Blemli\FormSettings\FormSettingsServiceProvider;
 use Filament\Actions\ActionsServiceProvider;
 use Filament\FilamentServiceProvider;
 use Filament\Forms\FormsServiceProvider;
@@ -19,7 +20,6 @@ use Livewire\LivewireServiceProvider;
 use Orchestra\Testbench\Concerns\WithWorkbench;
 use Orchestra\Testbench\TestCase as Orchestra;
 use RyanChandler\BladeCaptureDirective\BladeCaptureDirectiveServiceProvider;
-use Blemli\FormSettings\FormSettingsServiceProvider;
 
 class TestCase extends Orchestra
 {
@@ -62,6 +62,7 @@ class TestCase extends Orchestra
     public function getEnvironmentSetUp($app): void
     {
         $app['config']->set('database.default', 'testing');
+        $app['config']->set('app.key', 'base64:' . base64_encode(random_bytes(32)));
     }
 
     protected function defineDatabaseMigrations(): void

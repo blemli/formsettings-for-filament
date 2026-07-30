@@ -1,5 +1,6 @@
 includes:
     - phpstan-baseline.neon
+    - vendor/larastan/larastan/extension.neon
 
 parameters:
     level: 4
@@ -10,4 +11,8 @@ parameters:
     tmpDir: build/phpstan
     checkOctaneCompatibility: true
     checkModelProperties: true
+    ignoreErrors:
+        # The trait is consumer-facing package API; nothing inside this package uses it.
+        - identifier: trait.unused
+          path: src/Concerns/HasFormSettings.php
 

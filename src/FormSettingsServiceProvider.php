@@ -2,19 +2,18 @@
 
 namespace Blemli\FormSettings;
 
-use Filament\Support\Assets\AlpineComponent;
+use Blemli\FormSettings\Commands\UninstallCommand;
+use Blemli\FormSettings\Livewire\SaveActionHook;
+use Blemli\FormSettings\Livewire\SettingsPanel;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Field;
 use Filament\Support\Assets\Asset;
-use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
-use Filament\Support\Facades\FilamentIcon;
-use Illuminate\Filesystem\Filesystem;
-use Livewire\Features\SupportTesting\Testable;
+use Livewire\Livewire;
 use Spatie\LaravelPackageTools\Commands\InstallCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Blemli\FormSettings\Commands\FormSettingsCommand;
-use Blemli\FormSettings\Testing\TestsFormSettings;
 
 class FormSettingsServiceProvider extends PackageServiceProvider
 {
@@ -24,12 +23,11 @@ class FormSettingsServiceProvider extends PackageServiceProvider
 
     public function configurePackage(Package $package): void
     {
-        /*
-         * This class is a Package Service Provider
-         *
-         * More info: https://github.com/spatie/laravel-package-tools
-         */
         $package->name(static::$name)
+            ->hasConfigFile()
+            ->hasViews(static::$viewNamespace)
+            ->hasTranslations()
+            ->hasMigrations($this->getMigrations())
             ->hasCommands($this->getCommands())
             ->hasInstallCommand(function (InstallCommand $command) {
                 $command
@@ -38,55 +36,72 @@ class FormSettingsServiceProvider extends PackageServiceProvider
                     ->askToRunMigrations()
                     ->askToStarRepoOnGitHub('blemli/formsettings-for-filament');
             });
-
-        $configFileName = $package->shortName();
-
-        if (file_exists($package->basePath("/../config/{$configFileName}.php"))) {
-            $package->hasConfigFile();
-        }
-
-        if (file_exists($package->basePath('/../database/migrations'))) {
-            $package->hasMigrations($this->getMigrations());
-        }
-
-        if (file_exists($package->basePath('/../resources/lang'))) {
-            $package->hasTranslations();
-        }
-
-        if (file_exists($package->basePath('/../resources/views'))) {
-            $package->hasViews(static::$viewNamespace);
-        }
     }
 
-    public function packageRegistered(): void {}
+    public function packageRegistered(): void
+    {
+        $this->app->singleton(FormSettings::class);
+    }
 
     public function packageBooted(): void
     {
-        // Asset Registration
         FilamentAsset::register(
             $this->getAssets(),
             $this->getAssetPackageName()
         );
 
-        FilamentAsset::registerScriptData(
-            $this->getScriptData(),
-            $this->getAssetPackageName()
-        );
+        Livewire::component('formsettings-panel', SettingsPanel::class);
+        Livewire::componentHook(SaveActionHook::class);
 
-        // Icon Registration
-        FilamentIcon::register($this->getIcons());
+        $this->configureFields();
+        $this->configureActions();
+    }
 
-        // Handle Stubs
-        if (app()->runningInConsole()) {
-            foreach (app(Filesystem::class)->files(__DIR__ . '/../stubs/') as $file) {
-                $this->publishes([
-                    $file->getRealPath() => base_path("stubs/formsettings-for-filament/{$file->getFilename()}"),
-                ], 'formsettings-for-filament-stubs');
+    /**
+     * Attach lazily-evaluated closures to every form field so the
+     * user's saved settings (hide, tab order, entry point) apply at
+     * render time on enabled pages — and stay inert everywhere else.
+     */
+    protected function configureFields(): void
+    {
+        Field::configureUsing(function (Field $field): void {
+            $manager = fn (): FormSettings => app(FormSettings::class);
+
+            $field->hidden(fn (Field $component): bool => $manager()->fieldHidden($component));
+            $field->disabled(fn (Field $component): bool => $manager()->fieldHidden($component));
+            $field->autofocus(fn (Field $component): bool => $manager()->fieldIsEntryPoint($component));
+
+            $tabIndex = fn (Field $component): array => ($index = $manager()->fieldTabIndex($component)) === null
+                ? []
+                : ['tabindex' => $index];
+
+            if (method_exists($field, 'extraInputAttributes')) {
+                $field->extraInputAttributes($tabIndex, merge: true);
+            } else {
+                $field->extraAttributes($tabIndex, merge: true);
             }
-        }
+        });
+    }
 
-        // Testing
-        Testable::mixin(new TestsFormSettings);
+    /**
+     * Tag the page's primary submit action so the panel script can
+     * relabel it and bind mod+enter to it.
+     */
+    protected function configureActions(): void
+    {
+        Action::configureUsing(function (Action $action): void {
+            if (! in_array($action->getName(), ['save', 'create'], true)) {
+                return;
+            }
+
+            $action->extraAttributes(function (): array {
+                $manager = app(FormSettings::class);
+
+                return $manager->isEnabledFor(Livewire::current())
+                    ? ['data-formsettings-primary' => 'true']
+                    : [];
+            }, merge: true);
+        });
     }
 
     protected function getAssetPackageName(): ?string
@@ -100,9 +115,7 @@ class FormSettingsServiceProvider extends PackageServiceProvider
     protected function getAssets(): array
     {
         return [
-            // AlpineComponent::make('formsettings-for-filament', __DIR__ . '/../resources/dist/components/formsettings-for-filament.js'),
-            // Css::make('formsettings-for-filament-styles', __DIR__ . '/../resources/dist/formsettings-for-filament.css'),
-            // Js::make('formsettings-for-filament-scripts', __DIR__ . '/../resources/dist/formsettings-for-filament.js'),
+            Js::make('formsettings-scripts', __DIR__ . '/../resources/dist/formsettings.js'),
         ];
     }
 
@@ -112,32 +125,8 @@ class FormSettingsServiceProvider extends PackageServiceProvider
     protected function getCommands(): array
     {
         return [
-            FormSettingsCommand::class,
+            UninstallCommand::class,
         ];
-    }
-
-    /**
-     * @return array<string>
-     */
-    protected function getIcons(): array
-    {
-        return [];
-    }
-
-    /**
-     * @return array<string>
-     */
-    protected function getRoutes(): array
-    {
-        return [];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function getScriptData(): array
-    {
-        return [];
     }
 
     /**
@@ -146,7 +135,7 @@ class FormSettingsServiceProvider extends PackageServiceProvider
     protected function getMigrations(): array
     {
         return [
-            'create_formsettings-for-filament_table',
+            'create_formsettings_table',
         ];
     }
 }

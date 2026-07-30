@@ -41,6 +41,9 @@ class SettingsPanel extends Component
     public function mount(): void
     {
         $manager = app(FormSettings::class);
+
+        abort_unless($manager->plugin()?->isAuthorized() ?? true, 403);
+
         $settings = $manager->normalize($this->store()->get($this->formKey));
 
         $this->order = $settings['order'];

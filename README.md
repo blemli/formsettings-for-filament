@@ -8,7 +8,7 @@
 
 A gear on your form pages that lets every user tune the form like the table column selector: reorder the tab order, hide optional fields, pick an autofocus entry point, and choose what the submit button does (save / save & next / save & back, `cmd+enter` included).
 
-![formsettings panel](docs/screenshot-dark.png)
+![formsettings panel](docs/screenshot.png)
 
 ## Installation
 
@@ -27,6 +27,7 @@ $panel->plugin(
         ->globally()   // gear on all Create/Edit pages …
         ->persist()    // … settings per user in the DB instead of the session
         ->presets()    // … named presets
+        ->authorize('use-formsettings')   // … only for power users: bool, closure or gate ability (plays nice with Filament Shield)
 );
 ```
 

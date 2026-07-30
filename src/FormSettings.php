@@ -53,7 +53,7 @@ class FormSettings
 
         $plugin = $this->plugin();
 
-        if (! $plugin) {
+        if (! $plugin?->isAuthorized()) {
             return false;
         }
 

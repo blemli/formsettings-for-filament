@@ -4,8 +4,10 @@ namespace Blemli\FormSettings;
 
 use Closure;
 use Filament\Contracts\Plugin;
+use Filament\Facades\Filament;
 use Filament\Panel;
 use Filament\View\PanelsRenderHook;
+use Throwable;
 
 class FormSettingsPlugin implements Plugin
 {
@@ -14,6 +16,8 @@ class FormSettingsPlugin implements Plugin
     protected bool | Closure $isPersistent = false;
 
     protected bool | Closure $hasPresets = false;
+
+    protected bool | string | Closure $authorization = true;
 
     public function getId(): string
     {
@@ -48,6 +52,37 @@ class FormSettingsPlugin implements Plugin
         $this->hasPresets = $condition;
 
         return $this;
+    }
+
+    /**
+     * Restrict who gets the gear. Accepts a boolean, a closure that
+     * receives the authenticated user (or null), or a Gate ability
+     * name — e.g. a permission defined via Filament Shield.
+     */
+    public function authorize(bool | string | Closure $condition): static
+    {
+        $this->authorization = $condition;
+
+        return $this;
+    }
+
+    public function isAuthorized(): bool
+    {
+        try {
+            $user = Filament::auth()->user();
+        } catch (Throwable) {
+            $user = auth()->user();
+        }
+
+        if ($this->authorization instanceof Closure) {
+            return (bool) ($this->authorization)($user);
+        }
+
+        if (is_string($this->authorization)) {
+            return (bool) $user?->can($this->authorization);
+        }
+
+        return $this->authorization;
     }
 
     public function isGlobal(): bool

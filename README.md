@@ -29,7 +29,18 @@ $panel->plugin(
 );
 ```
 
-Without `globally()`, opt single pages in with the `Blemli\FormSettings\Concerns\HasFormSettings` trait.
+Without `globally()`, opt single pages in with the `HasFormSettings` trait:
+
+```php
+use Blemli\FormSettings\Concerns\HasFormSettings;
+use Filament\Resources\Pages\EditRecord;
+
+class EditPost extends EditRecord
+{
+    use HasFormSettings;
+}
+```
+
 Uninstall cleanly with `php artisan formsettings:uninstall`.
 
 ## License

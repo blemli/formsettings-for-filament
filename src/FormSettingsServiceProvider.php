@@ -34,8 +34,7 @@ class FormSettingsServiceProvider extends PackageServiceProvider
                 $command
                     ->publishConfigFile()
                     ->publishMigrations()
-                    ->askToRunMigrations()
-                    ->askToStarRepoOnGitHub('blemli/formsettings-for-filament');
+                    ->askToRunMigrations();
             });
     }
 

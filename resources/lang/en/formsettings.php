@@ -21,11 +21,4 @@ return [
         'create_next' => 'Create & create another',
         'create_back' => 'Create & back',
     ],
-
-    'uninstall' => [
-        'intro' => 'The following will be removed:',
-        'confirm_table' => 'Drop the :table database table (all saved form settings and presets will be lost)?',
-        'confirm_published' => 'Delete published config, translations and views?',
-        'done' => 'formsettings-for-filament was uninstalled. Finish with: composer remove blemli/formsettings-for-filament',
-    ],
 ];

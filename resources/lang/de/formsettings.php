@@ -21,11 +21,4 @@ return [
         'create_next' => 'Erstellen & weiterer Eintrag',
         'create_back' => 'Erstellen & zurück',
     ],
-
-    'uninstall' => [
-        'intro' => 'Folgendes wird entfernt:',
-        'confirm_table' => 'Datenbanktabelle :table löschen (alle gespeicherten Formular-Einstellungen und Vorlagen gehen verloren)?',
-        'confirm_published' => 'Veröffentlichte Konfiguration, Übersetzungen und Views löschen?',
-        'done' => 'formsettings-for-filament wurde deinstalliert. Zum Abschluss: composer remove blemli/formsettings-for-filament',
-    ],
 ];

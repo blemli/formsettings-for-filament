@@ -1,8 +1,8 @@
-.fi-dropdown-panel:has(> .formsettings-panel) {
+.fi-dropdown-panel:has(.formsettings-panel) {
     border: 1px solid rgb(0 0 0 / 0.12);
 }
 
-.dark .fi-dropdown-panel:has(> .formsettings-panel) {
+.dark .fi-dropdown-panel:has(.formsettings-panel) {
     border-color: rgb(255 255 255 / 0.15);
 }
 
@@ -14,7 +14,7 @@
    icons and buttons keep their size. Without min-width: 0, flex/grid
    children refuse to shrink below their content width, which squashed
    the icon buttons and forced a horizontal scrollbar. */
-.fi-dropdown-panel:has(> .formsettings-panel) {
+.fi-dropdown-panel:has(.formsettings-panel) {
     overflow-x: hidden;
 }
 
@@ -137,12 +137,19 @@
     color: var(--color-gray-300, rgb(209 213 219));
 }
 
+/* The dropdown uses its own width class (passed via the dropdown's
+   width prop) instead of fighting Filament's fi-width-* rules. */
+.fi-dropdown-panel.formsettings-width {
+    width: 24rem;
+    max-width: calc(100vw - 2rem);
+}
+
 /* On large screens, widen the dropdown and lay the fields out in two
    columns. Columns are adaptive: one only forms when it gets at least
    16rem, so labels keep readable room and never collide with the
    star/eye/drag buttons. */
 @media (min-width: 1024px) {
-    .fi-dropdown-panel:has(> .formsettings-panel) {
+    .fi-dropdown-panel.formsettings-width {
         width: 38rem;
         max-width: min(38rem, calc(100vw - 2rem));
     }

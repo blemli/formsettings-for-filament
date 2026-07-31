@@ -222,6 +222,34 @@
         setTimeout(flushQueue, 0),
     )
 
+    // Size the settings dropdown inline — theme stylesheets load after
+    // plugin assets and win every cascade fight (layered !important),
+    // so CSS alone cannot widen the panel reliably.
+    const sizePanel = () => {
+        const panel = document.querySelector(
+            '.fi-dropdown-panel.formsettings-width',
+        )
+
+        if (!panel) {
+            return
+        }
+
+        const width = window.matchMedia('(min-width: 1024px)').matches
+            ? '38rem'
+            : '24rem'
+
+        // 'important': themes size .fi-dropdown-panel with layered
+        // !important rules that beat plain inline styles.
+        panel.style.setProperty('width', width, 'important')
+        panel.style.setProperty(
+            'max-width',
+            `min(${width}, calc(100vw - 2rem))`,
+            'important',
+        )
+    }
+
+    window.addEventListener('resize', sizePanel)
+
     // The visible "save & back" button is rendered hidden inside the
     // gear's header markup — move it next to the primary form action.
     // Livewire morphs may restore it to its original spot, so this
@@ -273,6 +301,7 @@
         guardUntil = performance.now() + 2500
         run = null
         applyLabel()
+        sizePanel()
         placeBackButton()
         revealStartTab()
         focusEntryPoint()
@@ -285,6 +314,7 @@
             queueMicrotask(() => {
                 applyLabel()
                 placeBackButton()
+                sizePanel()
             }),
         )
     })

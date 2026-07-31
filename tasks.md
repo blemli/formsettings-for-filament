@@ -19,6 +19,8 @@ maybe instead of the reorder list we show interactive badges on the form fields 
 
 
 
+### autorevert
+
 could this be cool or unexpected?
 
 put a dropdown on the formsettings which shows reset after 2h by default and can be changed to 12h 1 week, never. also it dissapears when the settings are on default.
@@ -29,19 +31,14 @@ or just resetAfter(2h) or just revertOnMidnight()
 
 
 
-https://filamentphp.com/docs/5.x/resources/creating-records#creating-another-record
 
 
+### more ideas
 
-Learn: 
+how to hide on certain pages?
 
-1) should it suggest a preset if the usage pattern exactly matches it?
-2) maybe add "you often start in tab xy. set as starting point?"
+hide on mobile by default and ->showOnMobile()
 
+gear icon, change make editable
 
-
-
-
-hide on certain pages?
-
-->hideOnMobile()
+more ideas?

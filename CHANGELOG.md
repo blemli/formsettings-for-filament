@@ -2,6 +2,14 @@
 
 All notable changes to `formsettings-for-filament` will be documented in this file.
 
+## v0.3.0 - 2026-07-31
+
+**Behavior change:** the gear now shows on every Create/Edit page by default. Call `->optIn()` to only show it on pages using the `HasFormSettings` trait (`->globally()` still works for explicit setups).
+
+- New README screenshot showing suggestions, the submit-action picker and published/shared presets
+- The dropdown panel is sized by the plugin script (inline, important) — panel themes ship layered `!important` rules that override any plugin CSS, which kept the panel narrow and single-column in themed apps
+- The dropdown uses its own `formsettings-width` class instead of Filament's `fi-width-*`
+
 ## v0.2.0 - 2026-07-31
 
 **Migration note:** the `formsettings` table gained a `published` boolean column. Existing installs must add it (`$table->boolean('published')->default(false)`); fresh installs get it from the stub.

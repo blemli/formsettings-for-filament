@@ -21,7 +21,7 @@
         @if ($learningEnabled) data-formsettings-learn="true" @endif
         @if ($selectedLabel) data-formsettings-selected-label="{{ $selectedLabel }}" @endif
     >
-        <x-filament::dropdown placement="bottom-end" shift width="sm" max-height="32rem">
+        <x-filament::dropdown placement="bottom-end" shift width="formsettings-width" max-height="32rem">
             <x-slot name="trigger">
                 <x-filament::icon-button
                     icon="heroicon-o-cog-6-tooth"

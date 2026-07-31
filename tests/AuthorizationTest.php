@@ -2,6 +2,16 @@
 
 use Blemli\FormSettings\FormSettingsPlugin;
 
+it('is global by default and flips with optIn', function () {
+    $make = fn () => FormSettingsPlugin::make();
+
+    expect($make()->isGlobal())->toBeTrue()
+        ->and($make()->optIn()->isGlobal())->toBeFalse()
+        ->and($make()->optIn(false)->isGlobal())->toBeTrue()
+        ->and($make()->optIn(fn (): bool => true)->isGlobal())->toBeFalse()
+        ->and($make()->globally(false)->isGlobal())->toBeFalse();
+});
+
 it('is authorized by default', function () {
     expect(FormSettingsPlugin::make()->isAuthorized())->toBeTrue();
 });

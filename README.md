@@ -22,34 +22,31 @@ use Blemli\FormSettings\FormSettingsPlugin;
 
 $panel->plugin(
     FormSettingsPlugin::make()
-        ->globally()   // gear on all Create/Edit pages …
+        ->optIn()      // dont show the gear anywhere except on Pages with the HasFormSettings Trait (default: everywhere)
         ->persist()    // … settings per user in the DB instead of the session
         ->presets()    // … named presets
-        ->publish([Profanity::make()])        // … users can share presets with everyone (requires persist(); optional name rules, e.g. Blasp)
+        ->publish([Profanity::make()])  // … users can share presets with ohters (requires persist(); you can validate the name)
         ->ignoreGroups(['English', 'Deutsch'])   // … tabs that should NOT group the panel (e.g. translation tabs)
-        ->saveAndBackButton()   // … a visible "Save & back" button; the save-and-back submit action is only offered when this is on
-        ->learn(after: 5)   // … quiet usage-based suggestions inside the panel (field names only, never values)
-        ->authorize('use-formsettings')   // … only for power users: bool, closure or gate ability (plays nice with Filament Shield)
+        ->saveAndBackButton()   // to quickly edit things
+        ->learn(after: 5)   // … quiet usage-based suggestions inside the panel "you often start in xyz, set as entrypoint?"
+        ->authorize('use-formsettings')   // only show the settings to users which pass this gate
 );
 ```
 
-Published presets appear below the user's own ones, tinted and tagged with the owner's first name. Anyone can hide a shared preset (eye icon); hidden ones collapse into a subtle "n hidden" line that reveals them again — no extra UI to restore. Saving over an existing preset name asks for a confirming second click (the plus turns into a flame).
-
-With `learn()`, the plugin watches which fields each user actually fills (field names only — values are never read) and offers **pull-only** suggestions at the top of the gear panel — never popups or badges: hide the fields they rarely use (Create pages only), adopt their habitual first field as the entry point, make "Save & back" the default when they finish with it often, open the form on the tab they usually start in, and — when their usage exactly matches an existing preset (own or shared) — apply that preset instead of piecing it together. Matching is graceful: `learn(after: 5)` means 5 consistent runs among the last 7, so an outlier or two is forgiven. Each suggestion can be applied or dismissed once; dismissed suggestions never return.
-
-Forms with tabs also get a per-user **start tab**: click a group label in the panel (pin icon marks the active one) and the form opens on that tab — unless an entry point is set, which activates its own tab.
-
-Without `globally()`, opt single pages in with the `HasFormSettings` trait:
+With `optIn()`, single pages join via the trait:
 
 ```php
 use Blemli\FormSettings\Concerns\HasFormSettings;
-use Filament\Resources\Pages\EditRecord;
 
 class EditPost extends EditRecord
 {
     use HasFormSettings;
 }
 ```
+
+
+
+## Uninstall
 
 Uninstall cleanly with `php artisan formsettings:uninstall`.
 

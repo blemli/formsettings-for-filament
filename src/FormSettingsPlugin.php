@@ -11,7 +11,7 @@ use Throwable;
 
 class FormSettingsPlugin implements Plugin
 {
-    protected bool | Closure $isGlobal = false;
+    protected bool | Closure $isGlobal = true;
 
     protected bool | Closure $isPersistent = false;
 
@@ -35,7 +35,21 @@ class FormSettingsPlugin implements Plugin
     }
 
     /**
-     * Show the gear on every Create/Edit page, without the HasFormSettings trait.
+     * The gear shows on every Create/Edit page by default. Call this
+     * to only show it on pages that use the HasFormSettings trait.
+     */
+    public function optIn(bool | Closure $condition = true): static
+    {
+        $this->isGlobal = $condition instanceof Closure
+            ? fn (): bool => ! $condition()
+            : ! $condition;
+
+        return $this;
+    }
+
+    /**
+     * Show the gear on every Create/Edit page — the default since
+     * v0.3.0; kept for setups that call it explicitly.
      */
     public function globally(bool | Closure $condition = true): static
     {

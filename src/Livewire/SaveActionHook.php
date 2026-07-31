@@ -25,13 +25,38 @@ class SaveActionHook extends ComponentHook
     {
         $component = $this->component;
 
+        // The visible "save & back" button submits with a marker param;
+        // it is handled here and never reaches the real page method.
+        $isBackSubmit = in_array('formsettings-back', $params, true);
+
         if ($component instanceof EditRecord && $method === 'save') {
-            $this->handleSave($component, $returnEarly);
+            $isBackSubmit
+                ? $this->handleBackSubmit($component, $returnEarly, fn () => wrap($component)->save(false))
+                : $this->handleSave($component, $returnEarly);
         }
 
         if ($component instanceof CreateRecord && $method === 'create') {
-            $this->handleCreate($component, $returnEarly);
+            $isBackSubmit
+                ? $this->handleBackSubmit($component, $returnEarly, fn () => wrap($component)->create())
+                : $this->handleCreate($component, $returnEarly);
         }
+    }
+
+    protected function handleBackSubmit(CreateRecord | EditRecord $page, callable $returnEarly, callable $submit): void
+    {
+        $manager = app(FormSettings::class);
+
+        if (! $manager->isEnabledFor($page) || ! ($manager->plugin()?->hasSaveAndBackButton() ?? false)) {
+            return;
+        }
+
+        $submit();
+
+        if ($page->getErrorBag()->isEmpty()) {
+            $this->redirect($page, RecordNavigator::indexUrl($page));
+        }
+
+        $returnEarly(null);
     }
 
     protected function handleSave(EditRecord $page, callable $returnEarly): void

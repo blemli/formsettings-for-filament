@@ -12,12 +12,14 @@ use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Hidden;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Wizard\Step;
 use Throwable;
 
 class FormSettings
 {
     /**
-     * @var array<string, array{order: array<string>, hidden: array<string>, entry_point: string|null, action: string|null}>
+     * @var array<string, array{order: array<string>, hidden: array<string>, entry_point: string|null, action: string|null, start_tab: string|null}>
      */
     protected array $settingsCache = [];
 
@@ -73,7 +75,7 @@ class FormSettings
     }
 
     /**
-     * @return array{order: array<string>, hidden: array<string>, entry_point: string|null, action: string|null}
+     * @return array{order: array<string>, hidden: array<string>, entry_point: string|null, action: string|null, start_tab: string|null}
      */
     public function settingsFor(object $livewire): array
     {
@@ -84,7 +86,7 @@ class FormSettings
 
     /**
      * @param  array<string, mixed>|null  $settings
-     * @return array{order: array<string>, hidden: array<string>, entry_point: string|null, action: string|null}
+     * @return array{order: array<string>, hidden: array<string>, entry_point: string|null, action: string|null, start_tab: string|null}
      */
     public function normalize(?array $settings): array
     {
@@ -93,6 +95,7 @@ class FormSettings
             'hidden' => array_values((array) ($settings['hidden'] ?? [])),
             'entry_point' => $settings['entry_point'] ?? null,
             'action' => $settings['action'] ?? null,
+            'start_tab' => $settings['start_tab'] ?? null,
         ];
     }
 
@@ -139,6 +142,48 @@ class FormSettings
         }
     }
 
+    /**
+     * The field's name for the learn() usage tracker, or null when
+     * learning is off — keeps the DOM attribute out of ordinary pages.
+     */
+    public function fieldLearnName(Field $component): ?string
+    {
+        try {
+            if (! $this->isEnabledFor($component->getLivewire())) {
+                return null;
+            }
+
+            if (! ($this->plugin()?->hasLearning() ?? false)) {
+                return null;
+            }
+
+            return $component->getName();
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Whether the field belongs to the user's chosen start tab — the
+     * script activates that tab on load via the first marked field.
+     */
+    public function fieldStartsTab(Field $component): bool
+    {
+        try {
+            $livewire = $component->getLivewire();
+
+            if (! $this->isEnabledFor($livewire)) {
+                return false;
+            }
+
+            $startTab = $this->settingsFor($livewire)['start_tab'];
+
+            return $startTab !== null && $this->fieldGroupLabel($component) === $startTab;
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
     public function fieldIsEntryPoint(Field $component): bool
     {
         try {
@@ -163,19 +208,31 @@ class FormSettings
      */
     public function actionOptions(object $livewire): array
     {
+        // Save-and-back stays consistent with create-another: the
+        // option only exists when its visible button does.
+        $hasBack = $this->plugin()?->hasSaveAndBackButton() ?? false;
+
         if ($livewire instanceof EditRecord) {
             return [
                 'save' => __('formsettings-for-filament::formsettings.actions.save'),
                 'save_next' => __('formsettings-for-filament::formsettings.actions.save_next'),
-                'save_back' => __('formsettings-for-filament::formsettings.actions.save_back'),
+                ...($hasBack
+                    ? ['save_back' => __('formsettings-for-filament::formsettings.actions.save_back')]
+                    : []),
             ];
         }
 
         if ($livewire instanceof CreateRecord) {
             return [
                 'create' => __('formsettings-for-filament::formsettings.actions.create'),
-                'create_next' => __('formsettings-for-filament::formsettings.actions.create_next'),
-                'create_back' => __('formsettings-for-filament::formsettings.actions.create_back'),
+                // Resources may disable create-another — respect that
+                // instead of offering a bypass.
+                ...($livewire->canCreateAnother()
+                    ? ['create_next' => __('formsettings-for-filament::formsettings.actions.create_next')]
+                    : []),
+                ...($hasBack
+                    ? ['create_back' => __('formsettings-for-filament::formsettings.actions.create_back')]
+                    : []),
             ];
         }
 
@@ -214,13 +271,15 @@ class FormSettings
         return count($settings['hidden'])
             + ($settings['order'] === [] ? 0 : 1)
             + ($settings['entry_point'] === null ? 0 : 1)
+            + ($settings['start_tab'] === null ? 0 : 1)
             + (($settings['action'] !== null && $settings['action'] !== $this->defaultAction($livewire)) ? 1 : 0);
     }
 
     /**
      * Describe the fields of the page's form in natural schema order.
+     * Fields inside a tab (or wizard step) carry its label as `group`.
      *
-     * @return array<array{name: string, label: string, icon: string, required: bool, hideable: bool}>
+     * @return array<array{name: string, label: string, icon: string, required: bool, hideable: bool, group: string|null}>
      */
     public function describeFields(object $livewire): array
     {
@@ -259,9 +318,36 @@ class FormSettings
                 'icon' => FieldIcons::for($field),
                 'required' => $required,
                 'hideable' => ! $required,
+                'group' => $this->fieldGroupLabel($field),
             ];
         }
 
         return array_values($fields);
+    }
+
+    /**
+     * The label of the tab or wizard step enclosing the field, if any.
+     */
+    protected function fieldGroupLabel(Field $field): ?string
+    {
+        try {
+            $plugin = $this->plugin();
+            $component = $field->getContainer()->getParentComponent();
+
+            while ($component !== null) {
+                if ($component instanceof Tab || $component instanceof Step) {
+                    $label = (string) $component->getLabel();
+
+                    if ($label !== '' && ! ($plugin?->isGroupIgnored($component, $label) ?? false)) {
+                        return $label;
+                    }
+                }
+
+                $component = $component->getContainer()->getParentComponent();
+            }
+        } catch (Throwable) {
+        }
+
+        return null;
     }
 }

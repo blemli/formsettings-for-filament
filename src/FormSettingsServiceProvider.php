@@ -82,6 +82,14 @@ class FormSettingsServiceProvider extends PackageServiceProvider
                     $attributes['data-formsettings-entry'] = 'true';
                 }
 
+                if (($name = $manager()->fieldLearnName($component)) !== null) {
+                    $attributes['data-formsettings-name'] = $name;
+                }
+
+                if ($manager()->fieldStartsTab($component)) {
+                    $attributes['data-formsettings-start-tab'] = 'true';
+                }
+
                 return $attributes;
             };
 

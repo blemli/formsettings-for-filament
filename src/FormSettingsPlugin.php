@@ -17,6 +17,16 @@ class FormSettingsPlugin implements Plugin
 
     protected bool | Closure $hasPresets = false;
 
+    /** @var bool | array<mixed> | Closure */
+    protected bool | array | Closure $publishing = false;
+
+    /** @var array<string> | Closure | null */
+    protected array | Closure | null $ignoredGroups = null;
+
+    protected bool | int | Closure $learning = false;
+
+    protected bool | Closure $hasSaveAndBackButton = false;
+
     protected bool | string | Closure $authorization = true;
 
     public function getId(): string
@@ -52,6 +62,112 @@ class FormSettingsPlugin implements Plugin
         $this->hasPresets = $condition;
 
         return $this;
+    }
+
+    /**
+     * Let users publish presets to everyone using the same form.
+     * Requires persist(). Pass an array of validation rules (e.g.
+     * Blasp's profanity rule) to vet preset names before they are
+     * saved or published.
+     *
+     * @param  bool | array<mixed> | Closure  $condition
+     */
+    public function publish(bool | array | Closure $condition = true): static
+    {
+        $this->publishing = $condition;
+
+        return $this;
+    }
+
+    public function hasPublishing(): bool
+    {
+        $value = $this->publishing instanceof Closure ? ($this->publishing)() : $this->publishing;
+
+        return is_array($value) || (bool) $value;
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    public function getPublishRules(): array
+    {
+        $value = $this->publishing instanceof Closure ? ($this->publishing)() : $this->publishing;
+
+        return is_array($value) ? $value : [];
+    }
+
+    /**
+     * Add a visible "Save & back" / "Create & back" button next to the
+     * page's primary action. The save-and-back submit action is only
+     * offered in the panel when this button is enabled — the same
+     * consistency Filament applies to create-another.
+     */
+    public function saveAndBackButton(bool | Closure $condition = true): static
+    {
+        $this->hasSaveAndBackButton = $condition;
+
+        return $this;
+    }
+
+    public function hasSaveAndBackButton(): bool
+    {
+        return (bool) $this->evaluate($this->hasSaveAndBackButton);
+    }
+
+    /**
+     * Watch how each user fills the form (field names only — never
+     * values) and offer quiet, pull-only suggestions in the panel:
+     * hide rarely-used fields (Create pages) and adopt the habitual
+     * first field as the entry point (all pages). Pass an int N to
+     * require N consistent runs among the last N + 2, so an outlier
+     * or two is forgiven (default: 5 of the last 7).
+     */
+    public function learn(bool | int | Closure $after = true): static
+    {
+        $this->learning = $after;
+
+        return $this;
+    }
+
+    public function hasLearning(): bool
+    {
+        $value = $this->learning instanceof Closure ? ($this->learning)() : $this->learning;
+
+        return is_int($value) ? $value > 0 : (bool) $value;
+    }
+
+    public function learningThreshold(): int
+    {
+        $value = $this->learning instanceof Closure ? ($this->learning)() : $this->learning;
+
+        return max(1, is_int($value) ? $value : 5);
+    }
+
+    /**
+     * Tabs or wizard steps whose labels should NOT group the settings
+     * panel — e.g. per-locale translation tabs. Accepts an array of
+     * labels or a closure receiving the tab/step component.
+     *
+     * @param  array<string> | Closure  $groups
+     */
+    public function ignoreGroups(array | Closure $groups): static
+    {
+        $this->ignoredGroups = $groups;
+
+        return $this;
+    }
+
+    public function isGroupIgnored(object $component, string $label): bool
+    {
+        if ($this->ignoredGroups === null) {
+            return false;
+        }
+
+        if ($this->ignoredGroups instanceof Closure) {
+            return (bool) ($this->ignoredGroups)($component);
+        }
+
+        return in_array($label, $this->ignoredGroups, true);
     }
 
     /**

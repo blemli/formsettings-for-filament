@@ -47,6 +47,26 @@
             : marked.querySelector('input, select, textarea, button, [tabindex]')
     }
 
+    // The entry point may live inside an inactive Filament tab. Tab
+    // panels activate themselves on an `expand` event (the same hook
+    // Filament uses to reveal validation errors), so fire it on every
+    // concealing ancestor before trying to focus.
+    const revealEntryPoint = (target) => {
+        let revealed = false
+        let panel = target.closest('.fi-sc-tabs-tab:not(.fi-active)')
+
+        while (panel) {
+            panel.dispatchEvent(new CustomEvent('expand'))
+            revealed = true
+            panel =
+                panel.parentElement?.closest(
+                    '.fi-sc-tabs-tab:not(.fi-active)',
+                ) ?? null
+        }
+
+        return revealed
+    }
+
     const focusEntryPoint = () => {
         const target = entryTarget()
 
@@ -54,8 +74,16 @@
             return
         }
 
-        target.focus({ preventScroll: false })
-        target.select?.()
+        const doFocus = () => {
+            target.focus({ preventScroll: false })
+            target.select?.()
+        }
+
+        if (revealEntryPoint(target)) {
+            requestAnimationFrame(doFocus)
+        } else {
+            doFocus()
+        }
     }
 
     // Other scripts (Filament, plugins, native autofocus) may focus their
@@ -85,16 +113,180 @@
         { capture: true },
     )
 
+    // ----- usage learning (field names only — values are never read) -----
+
+    const QUEUE_KEY = 'formsettings-usage'
+
+    const learnRoot = () => document.querySelector('[data-formsettings-learn]')
+
+    let run = null
+
+    const noteInteraction = (event) => {
+        const root = learnRoot()
+
+        if (!root) {
+            return
+        }
+
+        const field = event.target?.closest?.('[data-formsettings-name]')
+        const name = field?.getAttribute('data-formsettings-name')
+        const key = root.getAttribute('data-formsettings-formkey')
+
+        if (!name || !key) {
+            return
+        }
+
+        if (!run || run.key !== key) {
+            run = { key, touched: [], first: null, action: null }
+        }
+
+        if (run.first === null) {
+            run.first = name
+        }
+
+        if (!run.touched.includes(name)) {
+            run.touched.push(name)
+        }
+    }
+
+    document.addEventListener('input', noteInteraction, { capture: true })
+    document.addEventListener('change', noteInteraction, { capture: true })
+
+    const readQueue = () => {
+        try {
+            return JSON.parse(localStorage.getItem(QUEUE_KEY)) ?? []
+        } catch {
+            return []
+        }
+    }
+
+    // A run only counts once the form is actually submitted. The queue
+    // lives in localStorage because submitting navigates away — it is
+    // flushed to the server on the next page that shows the gear.
+    const queueRun = () => {
+        if (!run || run.touched.length === 0) {
+            return
+        }
+
+        try {
+            localStorage.setItem(
+                QUEUE_KEY,
+                JSON.stringify([...readQueue(), run].slice(-20)),
+            )
+        } catch {
+            // Storage may be full or blocked — losing a run is fine.
+        }
+
+        run = null
+    }
+
+    window.addEventListener(
+        'click',
+        (event) => {
+            if (event.target?.closest?.('[data-formsettings-back]')) {
+                if (run) {
+                    run.action = 'back'
+                }
+
+                queueRun()
+
+                return
+            }
+
+            if (event.target?.closest?.('[data-formsettings-primary]')) {
+                queueRun()
+            }
+        },
+        { capture: true },
+    )
+
+    const flushQueue = () => {
+        if (!learnRoot() || !window.Livewire?.dispatch) {
+            return
+        }
+
+        const queue = readQueue()
+
+        if (queue.length === 0) {
+            return
+        }
+
+        try {
+            localStorage.removeItem(QUEUE_KEY)
+        } catch {}
+
+        window.Livewire.dispatch('formsettings-usage', { runs: queue })
+    }
+
+    document.addEventListener('livewire:initialized', () =>
+        setTimeout(flushQueue, 0),
+    )
+
+    // The visible "save & back" button is rendered hidden inside the
+    // gear's header markup — move it next to the primary form action.
+    // Livewire morphs may restore it to its original spot, so this
+    // runs again after every morph.
+    const placeBackButton = () => {
+        const buttons = [
+            ...document.querySelectorAll('[data-formsettings-back]'),
+        ]
+        const primary = primaryButton()
+
+        if (!primary || buttons.length === 0) {
+            return
+        }
+
+        let target = buttons.find(
+            (button) => button.parentElement === primary.parentElement,
+        )
+
+        if (!target) {
+            target = buttons[0]
+            primary.insertAdjacentElement('afterend', target)
+        }
+
+        buttons
+            .filter((button) => button !== target)
+            .forEach((button) => button.remove())
+
+        target.hidden = false
+    }
+
+    // ----- page lifecycle -----
+
+    // Open the form on the user's start tab — unless an entry point is
+    // set, which activates its own tab and takes precedence.
+    const revealStartTab = () => {
+        if (entryTarget()) {
+            return
+        }
+
+        const field = document.querySelector('[data-formsettings-start-tab]')
+
+        if (field) {
+            revealEntryPoint(field)
+        }
+    }
+
     const onPageReady = () => {
         userInteracted = false
         guardUntil = performance.now() + 2500
+        run = null
         applyLabel()
+        placeBackButton()
+        revealStartTab()
         focusEntryPoint()
         setTimeout(focusEntryPoint, 150)
+        setTimeout(flushQueue, 0)
     }
 
     document.addEventListener('livewire:init', () => {
-        window.Livewire.hook('morphed', () => queueMicrotask(applyLabel))
+        window.Livewire.hook('morphed', () =>
+            queueMicrotask(() => {
+                applyLabel()
+                placeBackButton()
+            }),
+        )
     })
 
     document.addEventListener('DOMContentLoaded', onPageReady)

@@ -9,3 +9,150 @@
 .formsettings-panel {
     padding: 1.5rem;
 }
+
+/* Rows must never overflow the panel: labels shrink and truncate,
+   icons and buttons keep their size. Without min-width: 0, flex/grid
+   children refuse to shrink below their content width, which squashed
+   the icon buttons and forced a horizontal scrollbar. */
+.fi-dropdown-panel:has(> .formsettings-panel) {
+    overflow-x: hidden;
+}
+
+.formsettings-panel .fi-ta-col-manager-item,
+.formsettings-panel .fi-ta-col-manager-label,
+.formsettings-panel .formsettings-fields > * {
+    min-width: 0;
+}
+
+.formsettings-panel .fi-ta-col-manager-label > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.formsettings-panel .fi-ta-col-manager-label svg,
+.formsettings-panel .fi-icon-btn {
+    flex-shrink: 0;
+}
+
+/* Breathing room above the section headings that follow the field list. */
+.formsettings-panel .fi-ta-col-manager-header:not(:first-child) {
+    margin-top: 0.75rem;
+}
+
+.formsettings-panel .formsettings-group-label {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: start;
+    cursor: pointer;
+    color: rgb(107 114 128);
+}
+
+.dark .formsettings-panel .formsettings-group-label {
+    color: rgb(156 163 175);
+}
+
+.formsettings-panel .formsettings-group-label:hover,
+.formsettings-panel .formsettings-group-label.formsettings-start-tab {
+    color: var(--color-primary-600, rgb(79 70 229));
+}
+
+.dark .formsettings-panel .formsettings-group-label:hover,
+.dark .formsettings-panel .formsettings-group-label.formsettings-start-tab {
+    color: var(--color-primary-400, rgb(129 140 248));
+}
+
+/* Mirror Filament's field error message (text-sm text-danger-600
+   dark:text-danger-400) — the original class is scoped to .fi-fo-field,
+   so it does not apply inside the dropdown panel by itself. */
+.formsettings-panel .formsettings-error {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--color-danger-600, rgb(220 38 38));
+}
+
+.dark .formsettings-panel .formsettings-error {
+    color: var(--color-danger-400, rgb(248 113 113));
+}
+
+/* Pull-only learn() suggestions — quiet rows, no badges, no popups. */
+.formsettings-panel .formsettings-suggestion {
+    align-items: flex-start;
+}
+
+.formsettings-panel .formsettings-suggestion-icon {
+    flex-shrink: 0;
+    color: var(--color-gray-400, rgb(156 163 175));
+}
+
+.formsettings-panel .formsettings-suggestion-text {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--color-gray-600, rgb(75 85 99));
+}
+
+.dark .formsettings-panel .formsettings-suggestion-text {
+    color: var(--color-gray-300, rgb(209 213 219));
+}
+
+/* Save button while an overwrite awaits confirmation — flame in danger color. */
+.formsettings-panel .fi-icon-btn.formsettings-overwrite {
+    color: var(--color-danger-600, rgb(220 38 38));
+}
+
+.dark .formsettings-panel .fi-icon-btn.formsettings-overwrite {
+    color: var(--color-danger-400, rgb(248 113 113));
+}
+
+.formsettings-panel .formsettings-shared-owner {
+    font-weight: 400;
+    color: var(--color-gray-500, rgb(107 114 128));
+}
+
+.formsettings-panel .formsettings-shared-hidden {
+    opacity: 0.5;
+}
+
+.formsettings-panel .formsettings-hidden-toggle {
+    padding-top: 1rem;
+    font-size: 0.75rem;
+    text-align: start;
+    color: var(--color-gray-400, rgb(156 163 175));
+}
+
+.formsettings-panel .formsettings-hidden-toggle:hover {
+    color: var(--color-gray-600, rgb(75 85 99));
+}
+
+.dark .formsettings-panel .formsettings-hidden-toggle:hover {
+    color: var(--color-gray-300, rgb(209 213 219));
+}
+
+/* On large screens, widen the dropdown and lay the fields out in two
+   columns. Columns are adaptive: one only forms when it gets at least
+   16rem, so labels keep readable room and never collide with the
+   star/eye/drag buttons. */
+@media (min-width: 1024px) {
+    .fi-dropdown-panel:has(> .formsettings-panel) {
+        width: 38rem;
+        max-width: min(38rem, calc(100vw - 2rem));
+    }
+
+    .formsettings-panel .formsettings-fields {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    }
+
+    .formsettings-panel .formsettings-fields .fi-ta-col-manager-item {
+        gap: 0.5rem;
+    }
+}

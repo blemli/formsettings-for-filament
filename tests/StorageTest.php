@@ -54,3 +54,46 @@ it('round-trips settings and presets through the database store', function () {
     $store->forget('panel::form');
     expect(FormSetting::query()->count())->toBe(0);
 });
+
+it('publishes, shares and hides presets through the database store', function () {
+    $migration = require __DIR__ . '/../database/migrations/create_formsettings_table.php.stub';
+    $migration->up();
+
+    $store = new DatabaseStore;
+    $settings = ['order' => [], 'hidden' => ['notes'], 'entry_point' => null, 'action' => null];
+
+    $store->putPreset('panel::form', 'mine', $settings);
+    expect($store->publishedPresetNames('panel::form'))->toBe([]);
+
+    $store->setPresetPublished('panel::form', 'mine', true);
+    expect($store->publishedPresetNames('panel::form'))->toBe(['mine'])
+        ->and($store->sharedPresets('panel::form'))->toBe([]);
+
+    // A published preset from another user surfaces as shared.
+    FormSetting::query()->create([
+        'user_type' => 'App\\Models\\User',
+        'user_id' => 42,
+        'key' => 'panel::form',
+        'preset' => 'theirs',
+        'settings' => $settings,
+        'published' => true,
+    ]);
+
+    $shared = $store->sharedPresets('panel::form');
+    expect($shared)->toHaveCount(1)
+        ->and($shared[0]['name'])->toBe('theirs')
+        ->and($shared[0]['user'])->toBe('42')
+        ->and($store->getSharedPreset('panel::form', '42', 'theirs'))->toBe($settings);
+
+    // Hiding is per user and never touches the shared rows themselves.
+    $store->putHiddenSharedPresets('panel::form', ['42|theirs']);
+    expect($store->hiddenSharedPresets('panel::form'))->toBe(['42|theirs'])
+        ->and($store->listPresets('panel::form'))->toBe(['mine'])
+        ->and($store->sharedPresets('panel::form'))->toHaveCount(1);
+
+    $store->putHiddenSharedPresets('panel::form', []);
+    expect($store->hiddenSharedPresets('panel::form'))->toBe([]);
+
+    $store->setPresetPublished('panel::form', 'mine', false);
+    expect($store->publishedPresetNames('panel::form'))->toBe([]);
+});

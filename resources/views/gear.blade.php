@@ -10,9 +10,15 @@
         $selectedLabel = $manager->selectedActionLabel($page);
     @endphp
 
+    @php
+        $learningEnabled = (bool) $manager->plugin()?->hasLearning();
+    @endphp
+
     <div
         x-data
         x-on:formsettings-updated.window="$wire.$refresh()"
+        data-formsettings-formkey="{{ $formKey }}"
+        @if ($learningEnabled) data-formsettings-learn="true" @endif
         @if ($selectedLabel) data-formsettings-selected-label="{{ $selectedLabel }}" @endif
     >
         <x-filament::dropdown placement="bottom-end" shift width="sm" max-height="32rem">
@@ -32,7 +38,32 @@
                 'fields' => $manager->describeFields($page),
                 'actionOptions' => $manager->actionOptions($page),
                 'presetsEnabled' => (bool) $manager->plugin()?->hasPresets(),
+                'publishingEnabled' => (bool) ($manager->plugin()?->hasPresets() && $manager->plugin()?->hasPublishing() && $manager->plugin()?->isPersistent()),
+                'learningEnabled' => $learningEnabled,
+                'learnAfter' => $manager->plugin()?->learningThreshold() ?? 5,
+                'suggestHiding' => ! $page instanceof \Filament\Resources\Pages\EditRecord,
             ], key('formsettings-panel-' . $formKey))
         </x-filament::dropdown>
+
+        @php
+            $isCreatePage = $page instanceof \Filament\Resources\Pages\CreateRecord;
+            $showBackButton = $manager->plugin()?->hasSaveAndBackButton()
+                && ($isCreatePage || $page instanceof \Filament\Resources\Pages\EditRecord);
+        @endphp
+
+        @if ($showBackButton)
+            {{-- Rendered hidden; the script moves it next to the primary
+                 form action, where it belongs visually. --}}
+            <x-filament::button
+                color="gray"
+                tag="button"
+                type="button"
+                hidden
+                data-formsettings-back="true"
+                wire:click="{{ $isCreatePage ? 'create' : 'save' }}('formsettings-back')"
+            >
+                {{ __($isCreatePage ? 'formsettings-for-filament::formsettings.actions.create_back' : 'formsettings-for-filament::formsettings.actions.save_back') }}
+            </x-filament::button>
+        @endif
     </div>
 @endif

@@ -22,7 +22,7 @@ use Blemli\FormSettings\FormSettingsPlugin;
 
 $panel->plugin(
     FormSettingsPlugin::make()
-        ->optIn()      // dont show the gear anywhere except on Pages with the HasFormSettings Trait (default: everywhere)
+        ->optIn()      // dont show the gear anywhere except on Pages with the HasFormSettings Trait
         ->persist()    // … settings per user in the DB instead of the session
         ->presets()    // … named presets
         ->publish([Profanity::make()])  // … users can share presets with ohters (requires persist(); you can validate the name)

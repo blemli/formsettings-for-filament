@@ -2,6 +2,7 @@
 
 namespace Blemli\FormSettings;
 
+use Blemli\FormSettings\Commands\GraveyardCommand;
 use Blemli\FormSettings\Commands\UninstallCommand;
 use Blemli\FormSettings\Livewire\SaveActionHook;
 use Blemli\FormSettings\Livewire\SettingsPanel;
@@ -165,6 +166,7 @@ class FormSettingsServiceProvider extends PackageServiceProvider
     {
         return [
             UninstallCommand::class,
+            GraveyardCommand::class,
         ];
     }
 

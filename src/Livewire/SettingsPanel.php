@@ -424,6 +424,12 @@ class SettingsPanel extends Component
                 -max(10, $this->learnAfter + 2),
             );
 
+            // Remember the full field list so the graveyard command can
+            // report fields nobody ever touches.
+            if ($key === $this->formKey) {
+                $usage['fields'] = array_column($this->fields, 'name');
+            }
+
             $this->store()->putUsage($key, $usage);
         }
     }

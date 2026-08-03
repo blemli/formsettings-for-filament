@@ -56,6 +56,12 @@ Lock single fields against hiding and reordering:
 TextInput::make('iban')->formSettingsLocked()
 ```
 
+Find fields nobody uses (requires `persist()` + `learn()`):
+
+```bash
+php artisan formsettings:graveyard
+```
+
 ## Uninstall
 
 Uninstall cleanly with `php artisan formsettings:uninstall`.

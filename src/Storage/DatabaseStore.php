@@ -18,8 +18,9 @@ class DatabaseStore implements SettingsStore
 
     /**
      * Reserved preset name for the row holding learn() usage stats.
+     * Public so the graveyard command can aggregate across users.
      */
-    protected const USAGE = '__formsettings_usage__';
+    public const USAGE = '__formsettings_usage__';
 
     /**
      * @var array<string>

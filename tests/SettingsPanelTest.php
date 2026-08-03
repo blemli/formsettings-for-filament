@@ -424,6 +424,13 @@ it('keeps locked fields in place when reordering', function () {
     // color stayed in its middle slot; only title and notes swapped.
 });
 
+it('applies the arrange overlay chain through the subset merge', function () {
+    $panel = makePanel()->call('arrangeFromOverlay', ['notes', 'title', 123]);
+
+    // notes and title swap through their slots; color keeps its place.
+    expect((new SessionStore)->get('panel::test-form')['order'])->toBe(['notes', 'color', 'title']);
+});
+
 it('applies predefined presets sanitized', function () {
     $panel = makePanel([
         'predefinedPresets' => [

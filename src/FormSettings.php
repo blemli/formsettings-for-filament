@@ -251,17 +251,13 @@ class FormSettings
     }
 
     /**
-     * The field's name for the learn() usage tracker, or null when
-     * learning is off — keeps the DOM attribute out of ordinary pages.
+     * The field's name for the usage tracker and the arrange overlay,
+     * or null on pages where the plugin is off.
      */
     public function fieldLearnName(Field $component): ?string
     {
         try {
             if (! $this->isEnabledFor($component->getLivewire())) {
-                return null;
-            }
-
-            if (! ($this->plugin()?->hasLearning() ?? false)) {
                 return null;
             }
 

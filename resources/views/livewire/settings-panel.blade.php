@@ -10,7 +10,14 @@
             {{ __('formsettings-for-filament::formsettings.heading') }}
         </h3>
 
-        <div>
+        <div class="formsettings-header-links">
+            <x-filament::link
+                tag="button"
+                x-on:click="window.dispatchEvent(new CustomEvent('formsettings-arrange-start'))"
+            >
+                {{ __('formsettings-for-filament::formsettings.arrange') }}
+            </x-filament::link>
+
             <x-filament::link
                 color="danger"
                 tag="button"

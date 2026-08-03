@@ -280,6 +280,209 @@
         target.hidden = false
     }
 
+    // ----- arrange overlay: number the fields on the real form -----
+    //
+    // Click a field's badge to append it to the chain (badges show the
+    // position, arrows connect consecutive picks); click a numbered
+    // badge to undo back to that point. Star sets the entry point, the
+    // crossed eye hides a field. Apply sends the chain to the panel,
+    // where the subset merge keeps unclicked fields in place.
+
+    const arrange = { active: false, chain: [], layer: null, timer: null }
+
+    const arrangeLabel = (key) =>
+        document
+            .querySelector('[data-formsettings-formkey]')
+            ?.getAttribute('data-formsettings-arrange-' + key) ?? key
+
+    const exitArrange = (commit) => {
+        if (!arrange.active) {
+            return
+        }
+
+        const chain = [...arrange.chain]
+
+        arrange.active = false
+        clearInterval(arrange.timer)
+        arrange.layer?.remove()
+        arrange.layer = null
+        arrange.chain = []
+
+        if (commit && chain.length > 0 && window.Livewire?.dispatch) {
+            window.Livewire.dispatch('formsettings-arrange', { names: chain })
+        }
+    }
+
+    const renderArrange = () => {
+        if (!arrange.active || !arrange.layer) {
+            return
+        }
+
+        const svg = arrange.layer.querySelector('svg')
+        const badges = arrange.layer.querySelector('[data-badges]')
+        badges.innerHTML = ''
+        const points = []
+        // Multi-input fields (toggle buttons, checkbox lists, …) carry
+        // the name on every input — one badge per field is enough.
+        const seen = new Set()
+
+        for (const el of document.querySelectorAll(
+            '[data-formsettings-name]',
+        )) {
+            const rect = el.getBoundingClientRect()
+
+            if (rect.width === 0 || rect.height === 0) {
+                continue
+            }
+
+            const name = el.getAttribute('data-formsettings-name')
+
+            if (seen.has(name)) {
+                continue
+            }
+
+            seen.add(name)
+            const index = arrange.chain.indexOf(name)
+
+            const cluster = document.createElement('div')
+            cluster.className = 'formsettings-arrange-cluster'
+            cluster.style.left = `${Math.max(rect.left - 34, 4)}px`
+            cluster.style.top = `${rect.top + rect.height / 2 - 14}px`
+
+            const badge = document.createElement('button')
+            badge.type = 'button'
+            badge.className =
+                'formsettings-arrange-badge' +
+                (index >= 0 ? ' formsettings-arrange-active' : '')
+            badge.textContent = index >= 0 ? String(index + 1) : ''
+            badge.addEventListener('click', (event) => {
+                event.stopPropagation()
+                const position = arrange.chain.indexOf(name)
+                if (position >= 0) {
+                    arrange.chain = arrange.chain.slice(0, position)
+                } else {
+                    arrange.chain.push(name)
+                }
+                renderArrange()
+            })
+            cluster.appendChild(badge)
+
+            const star = document.createElement('button')
+            star.type = 'button'
+            star.className = 'formsettings-arrange-mini'
+            star.textContent = el.closest('[data-formsettings-entry]') || el.hasAttribute('data-formsettings-entry') ? '★' : '☆'
+            star.addEventListener('click', (event) => {
+                event.stopPropagation()
+                window.Livewire?.dispatch('formsettings-overlay-entry', {
+                    name,
+                })
+            })
+            cluster.appendChild(star)
+
+            const eye = document.createElement('button')
+            eye.type = 'button'
+            eye.className = 'formsettings-arrange-mini'
+            eye.textContent = '⊘'
+            eye.addEventListener('click', (event) => {
+                event.stopPropagation()
+                arrange.chain = arrange.chain.filter((n) => n !== name)
+                window.Livewire?.dispatch('formsettings-overlay-hide', {
+                    name,
+                })
+            })
+            cluster.appendChild(eye)
+
+            badges.appendChild(cluster)
+
+            if (index >= 0) {
+                points[index] = {
+                    x: rect.left - 20,
+                    y: rect.top + rect.height / 2,
+                }
+            }
+        }
+
+        svg.setAttribute(
+            'viewBox',
+            `0 0 ${window.innerWidth} ${window.innerHeight}`,
+        )
+        svg.innerHTML = ''
+
+        for (let i = 1; i < points.length; i++) {
+            const from = points[i - 1]
+            const to = points[i]
+
+            if (!from || !to) {
+                continue
+            }
+
+            const line = document.createElementNS(
+                'http://www.w3.org/2000/svg',
+                'line',
+            )
+            line.setAttribute('x1', from.x)
+            line.setAttribute('y1', from.y)
+            line.setAttribute('x2', to.x)
+            line.setAttribute('y2', to.y)
+            line.setAttribute('class', 'formsettings-arrange-line')
+            svg.appendChild(line)
+        }
+    }
+
+    const startArrange = () => {
+        if (arrange.active) {
+            return
+        }
+
+        document.body.click() // closes the gear dropdown
+
+        arrange.active = true
+        arrange.chain = []
+
+        const layer = document.createElement('div')
+        layer.className = 'formsettings-arrange-layer'
+        layer.innerHTML =
+            '<svg></svg><div data-badges></div>' +
+            '<div class="formsettings-arrange-bar">' +
+            '<button type="button" data-arrange-apply></button>' +
+            '<button type="button" data-arrange-cancel></button>' +
+            '</div>'
+
+        layer.querySelector('[data-arrange-apply]').textContent =
+            arrangeLabel('apply')
+        layer.querySelector('[data-arrange-cancel]').textContent =
+            arrangeLabel('cancel')
+        layer
+            .querySelector('[data-arrange-apply]')
+            .addEventListener('click', () => exitArrange(true))
+        layer
+            .querySelector('[data-arrange-cancel]')
+            .addEventListener('click', () => exitArrange(false))
+
+        document.body.appendChild(layer)
+        arrange.layer = layer
+        arrange.timer = setInterval(renderArrange, 250)
+        renderArrange()
+    }
+
+    window.addEventListener('formsettings-arrange-start', startArrange)
+
+    window.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            exitArrange(false)
+        }
+    })
+
+    window.addEventListener(
+        'scroll',
+        () => {
+            if (arrange.active) {
+                renderArrange()
+            }
+        },
+        { capture: true, passive: true },
+    )
+
     // ----- page lifecycle -----
 
     // Open the form on the user's start tab — unless an entry point is
@@ -300,6 +503,7 @@
         userInteracted = false
         guardUntil = performance.now() + 2500
         run = null
+        exitArrange(false)
         applyLabel()
         sizePanel()
         placeBackButton()

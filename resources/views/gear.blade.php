@@ -19,6 +19,8 @@
         x-on:formsettings-updated.window="$wire.$refresh()"
         class="formsettings-gear {{ $manager->plugin()?->isShownOnMobile() ? '' : 'formsettings-hide-mobile' }}"
         data-formsettings-formkey="{{ $formKey }}"
+        data-formsettings-arrange-apply="{{ __('formsettings-for-filament::formsettings.arrange_apply') }}"
+        data-formsettings-arrange-cancel="{{ __('formsettings-for-filament::formsettings.arrange_cancel') }}"
         @if ($learningEnabled) data-formsettings-learn="true" @endif
         @if ($selectedLabel) data-formsettings-selected-label="{{ $selectedLabel }}" @endif
     >

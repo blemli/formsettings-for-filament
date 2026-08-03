@@ -262,6 +262,34 @@ class SettingsPanel extends Component
         $this->applySettings($this->predefinedPresets[$name] ?? null);
     }
 
+    /**
+     * The arrange overlay finished a chain — the subset merge keeps
+     * every unclicked field in place.
+     *
+     * @param  array<int, mixed>  $names
+     */
+    #[On('formsettings-arrange')]
+    public function arrangeFromOverlay(array $names = []): void
+    {
+        $this->reorder(array_values(array_filter($names, 'is_string')));
+    }
+
+    #[On('formsettings-overlay-entry')]
+    public function overlayEntry(string $name = ''): void
+    {
+        if ($name !== '') {
+            $this->setEntryPoint($name);
+        }
+    }
+
+    #[On('formsettings-overlay-hide')]
+    public function overlayHide(string $name = ''): void
+    {
+        if ($name !== '') {
+            $this->toggleHidden($name);
+        }
+    }
+
     public function deletePreset(string $name): void
     {
         if (in_array($name, $this->publishedPresets, true) && $this->confirmingDelete !== $name) {

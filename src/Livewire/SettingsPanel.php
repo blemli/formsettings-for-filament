@@ -15,7 +15,7 @@ class SettingsPanel extends Component
     /**
      * Field metadata in natural schema order.
      *
-     * @var array<array{name: string, label: string, icon: string, required: bool, hideable: bool, group?: string|null}>
+     * @var array<array{name: string, label: string, icon: string, required: bool, hideable: bool, locked?: bool, group?: string|null}>
      */
     public array $fields = [];
 
@@ -137,7 +137,8 @@ class SettingsPanel extends Component
     public function reorder(array $names): void
     {
         $known = array_column($this->fields, 'name');
-        $names = array_values(array_intersect($names, $known));
+        $locked = array_column(array_filter($this->fields, fn (array $field): bool => $field['locked'] ?? false), 'name');
+        $names = array_values(array_diff(array_intersect($names, $known), $locked));
 
         $current = array_column($this->getSortedFieldsProperty(), 'name');
         $moved = array_flip($names);

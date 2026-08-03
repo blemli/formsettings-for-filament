@@ -24,6 +24,28 @@ class FormSettings
     protected array $settingsCache = [];
 
     /**
+     * Fields locked by the developer via Field::formSettingsLocked().
+     *
+     * @var \WeakMap<Field, bool>
+     */
+    protected \WeakMap $lockedFields;
+
+    public function __construct()
+    {
+        $this->lockedFields = new \WeakMap;
+    }
+
+    public function lockField(Field $field, bool $locked = true): void
+    {
+        $this->lockedFields[$field] = $locked;
+    }
+
+    public function isFieldLocked(Field $field): bool
+    {
+        return $this->lockedFields[$field] ?? false;
+    }
+
+    /**
      * Developer-shipped presets that apply to the given page, from
      * FormSettingsPlugin::predefined() — keyed by preset name.
      *
@@ -365,7 +387,7 @@ class FormSettings
      * Describe the fields of the page's form in natural schema order.
      * Fields inside a tab (or wizard step) carry its label as `group`.
      *
-     * @return array<array{name: string, label: string, icon: string, required: bool, hideable: bool, group: string|null}>
+     * @return array<array{name: string, label: string, icon: string, required: bool, hideable: bool, locked: bool, group: string|null}>
      */
     public function describeFields(object $livewire): array
     {
@@ -398,12 +420,15 @@ class FormSettings
                 $required = true;
             }
 
+            $locked = $this->isFieldLocked($field);
+
             $fields[$name] = [
                 'name' => $name,
                 'label' => (string) $field->getLabel(),
                 'icon' => FieldIcons::for($field),
                 'required' => $required,
-                'hideable' => ! $required,
+                'hideable' => ! $required && ! $locked,
+                'locked' => $locked,
                 'group' => $this->fieldGroupLabel($field),
             ];
         }

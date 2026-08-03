@@ -53,6 +53,14 @@ class FormSettingsServiceProvider extends PackageServiceProvider
         Livewire::component('formsettings-panel', SettingsPanel::class);
         Livewire::componentHook(SaveActionHook::class);
 
+        // Developer guardrail: ->formSettingsLocked() pins a field —
+        // users can neither hide nor reorder it.
+        Field::macro('formSettingsLocked', function (bool $locked = true) {
+            app(FormSettings::class)->lockField($this, $locked);
+
+            return $this;
+        });
+
         $this->configureFields();
         $this->configureActions();
     }

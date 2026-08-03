@@ -132,14 +132,25 @@
                             </button>
                         @endif
 
-                        <button
-                            x-sortable-handle
-                            x-on:click.stop
-                            class="fi-ta-col-manager-reorder-handle fi-icon-btn"
-                            type="button"
-                        >
-                            {{ generate_icon_html('heroicon-o-bars-2', size: IconSize::Small) }}
-                        </button>
+                        @if ($field['locked'] ?? false)
+                            <button
+                                type="button"
+                                class="fi-icon-btn"
+                                disabled
+                                title="{{ __('formsettings-for-filament::formsettings.locked_field') }}"
+                            >
+                                {{ generate_icon_html('heroicon-o-lock-closed', size: IconSize::Small) }}
+                            </button>
+                        @else
+                            <button
+                                x-sortable-handle
+                                x-on:click.stop
+                                class="fi-ta-col-manager-reorder-handle fi-icon-btn"
+                                type="button"
+                            >
+                                {{ generate_icon_html('heroicon-o-bars-2', size: IconSize::Small) }}
+                            </button>
+                        @endif
                     </div>
                 </div>
             @endforeach

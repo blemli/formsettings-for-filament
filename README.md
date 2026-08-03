@@ -50,6 +50,12 @@ class EditPost extends EditRecord
 
 
 
+Lock single fields against hiding and reordering:
+
+```php
+TextInput::make('iban')->formSettingsLocked()
+```
+
 ## Uninstall
 
 Uninstall cleanly with `php artisan formsettings:uninstall`.

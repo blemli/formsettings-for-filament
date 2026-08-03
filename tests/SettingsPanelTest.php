@@ -409,6 +409,21 @@ it('renders no uncompiled js directives', function () {
     expect($panel->html())->not->toContain('@js(');
 });
 
+it('keeps locked fields in place when reordering', function () {
+    $panel = makePanel([
+        'fields' => [
+            ['name' => 'title', 'label' => 'Title', 'icon' => 'heroicon-o-pencil', 'required' => true, 'hideable' => false],
+            ['name' => 'color', 'label' => 'Color', 'icon' => 'heroicon-o-swatch', 'required' => false, 'hideable' => false, 'locked' => true],
+            ['name' => 'notes', 'label' => 'Notes', 'icon' => 'heroicon-o-bars-3-bottom-left', 'required' => false, 'hideable' => true],
+        ],
+    ]);
+
+    $panel->call('reorder', ['notes', 'color', 'title']);
+
+    expect((new SessionStore)->get('panel::test-form')['order'])->toBe(['notes', 'color', 'title']);
+    // color stayed in its middle slot; only title and notes swapped.
+});
+
 it('applies predefined presets sanitized', function () {
     $panel = makePanel([
         'predefinedPresets' => [

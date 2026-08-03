@@ -39,6 +39,6 @@ how to hide on certain pages?
 
 hide on mobile by default and ->showOnMobile()
 
-gear icon, change make editable
+hidden fields can't be entry points...
 
 more ideas?

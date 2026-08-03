@@ -124,6 +124,7 @@
                             class="fi-icon-btn"
                             wire:click="setEntryPoint(@js($field['name']))"
                             title="{{ __('formsettings-for-filament::formsettings.entry_point') }}"
+                            @disabled($isHidden)
                         >
                             {{ generate_icon_html($isEntryPoint ? 'heroicon-s-star' : 'heroicon-o-star', size: IconSize::Small) }}
                         </button>

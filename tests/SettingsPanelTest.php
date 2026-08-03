@@ -58,6 +58,14 @@ it('sets and toggles the entry point', function () {
     expect((new SessionStore)->get('panel::test-form'))->toBeNull();
 });
 
+it('refuses a hidden field as entry point', function () {
+    $panel = makePanel()
+        ->call('toggleHidden', 'color')
+        ->call('setEntryPoint', 'color');
+
+    expect($panel->get('entryPoint'))->toBeNull();
+});
+
 it('clears the entry point when its field gets hidden', function () {
     $panel = makePanel()
         ->call('setEntryPoint', 'notes')

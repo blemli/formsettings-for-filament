@@ -177,6 +177,11 @@ class SettingsPanel extends Component
 
     public function setEntryPoint(string $name): void
     {
+        // A hidden field is not rendered, so it can never take focus.
+        if (in_array($name, $this->hidden, true)) {
+            return;
+        }
+
         $this->entryPoint = ($this->entryPoint === $name) ? null : $name;
 
         $this->persistSettings();

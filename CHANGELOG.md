@@ -2,6 +2,21 @@
 
 All notable changes to `formsettings-for-filament` will be documented in this file.
 
+## v0.4.0 - 2026-08-03
+
+**Behavior change:** the gear is now hidden on small screens by default — call `->showOnMobile()` to keep it. Saved settings still apply on mobile; only the panel is unreachable there.
+
+- `->except([...])` keeps the gear off listed pages even in global mode
+- `->perResource()`: one settings record per resource instead of per page; existing per-page settings are migrated the first time the resource key comes up empty
+- `->predefined([Resource::class => ['Name' => [...]]])`: ship presets with your app — they appear in every user's panel (bolt icon) but are never applied automatically
+- `Field::formSettingsLocked()` pins a field: users can neither hide nor reorder it (lock icon instead of the drag handle)
+- Arrange overlay: "Arrange on form" numbers the fields on the real form — click badges to chain a new order (arrows connect the picks), star sets the entry point, crossed eye hides; unclicked fields keep their place
+- `php artisan formsettings:graveyard` lists fields nobody touches, aggregated across users (requires `persist()` + `learn()`)
+- Hidden fields can no longer be entry points: the star is disabled and stale names are refused
+- Fixed: user-hidden fields stayed visible when the resource chained its own `->hidden()` / `->hiddenOn()` condition (e.g. conditional file uploads, disabled system-ID fields) — the hide setting now sits in both of Filament's visibility slots, so resource code can replace either one and the survivor still hides
+- Fixed: file uploads and non-native selects were invisible to the arrange overlay and the usage tracker — the field-name marker now renders on the field's root element, where FilePond & friends can't destroy it
+- Verified in the browser against the demo app: panel and overlay hide/unhide round-trips on Edit and Create pages (including reload persistence), developer visibility conditions still winning where they should, overlay badges covering every field type
+
 ## v0.3.0 - 2026-07-31
 
 **Behavior change:** the gear now shows on every Create/Edit page by default. Call `->optIn()` to only show it on pages using the `HasFormSettings` trait (`->globally()` still works for explicit setups).

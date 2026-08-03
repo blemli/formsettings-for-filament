@@ -23,6 +23,34 @@ class FormSettings
      */
     protected array $settingsCache = [];
 
+    /**
+     * Developer-shipped presets that apply to the given page, from
+     * FormSettingsPlugin::predefined() — keyed by preset name.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function predefinedFor(object $livewire): array
+    {
+        $presets = [];
+
+        foreach ($this->plugin()?->getPredefined() ?? [] as $class => $named) {
+            $matches = $livewire instanceof $class;
+
+            if (! $matches) {
+                try {
+                    $matches = method_exists($livewire, 'getResource') && $livewire::getResource() === $class;
+                } catch (Throwable) {
+                }
+            }
+
+            if ($matches) {
+                $presets = [...$presets, ...$named];
+            }
+        }
+
+        return $presets;
+    }
+
     public function plugin(): ?FormSettingsPlugin
     {
         try {
@@ -59,6 +87,10 @@ class FormSettings
             return false;
         }
 
+        if ($plugin->isExcepted($livewire)) {
+            return false;
+        }
+
         if (in_array(HasFormSettings::class, class_uses_recursive($livewire), true)) {
             return true;
         }
@@ -70,8 +102,53 @@ class FormSettings
     public function keyFor(object $livewire): string
     {
         $panelId = Filament::getCurrentPanel()?->getId() ?? 'default';
+        $subject = $livewire::class;
 
-        return $panelId . '::' . str_replace('\\', '.', $livewire::class);
+        if (($this->plugin()?->isPerResource() ?? false)
+            && ($livewire instanceof CreateRecord || $livewire instanceof EditRecord)) {
+            try {
+                $subject = $livewire::getResource();
+            } catch (Throwable) {
+            }
+        }
+
+        return $panelId . '::' . str_replace('\\', '.', $subject);
+    }
+
+    /**
+     * With perResource(), settings saved under the old per-page keys
+     * are moved to the resource key the first time it comes up empty.
+     */
+    protected function migrateLegacyKeys(object $livewire, string $key): void
+    {
+        try {
+            if (! ($this->plugin()?->isPerResource() ?? false)) {
+                return;
+            }
+
+            if (! ($livewire instanceof CreateRecord || $livewire instanceof EditRecord)) {
+                return;
+            }
+
+            $panelId = Filament::getCurrentPanel()?->getId() ?? 'default';
+
+            foreach ($livewire::getResource()::getPages() as $registration) {
+                $page = is_object($registration) && method_exists($registration, 'getPage')
+                    ? $registration->getPage()
+                    : (is_string($registration) ? $registration : null);
+
+                if (! is_string($page)) {
+                    continue;
+                }
+
+                $legacy = $panelId . '::' . str_replace('\\', '.', $page);
+
+                if ($legacy !== $key) {
+                    $this->store()->migrateKey($legacy, $key);
+                }
+            }
+        } catch (Throwable) {
+        }
     }
 
     /**
@@ -81,7 +158,16 @@ class FormSettings
     {
         $key = $this->keyFor($livewire);
 
-        return $this->settingsCache[$key] ??= $this->normalize($this->store()->get($key));
+        return $this->settingsCache[$key] ??= (function () use ($livewire, $key): array {
+            $settings = $this->store()->get($key);
+
+            if ($settings === null) {
+                $this->migrateLegacyKeys($livewire, $key);
+                $settings = $this->store()->get($key);
+            }
+
+            return $this->normalize($settings);
+        })();
     }
 
     /**

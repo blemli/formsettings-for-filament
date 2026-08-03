@@ -55,6 +55,43 @@ it('round-trips settings and presets through the database store', function () {
     expect(FormSetting::query()->count())->toBe(0);
 });
 
+it('migrates keys in the session store without clobbering the target', function () {
+    $store = new SessionStore;
+    $settings = ['order' => [], 'hidden' => ['a'], 'entry_point' => null, 'action' => null];
+
+    $store->put('old-key', $settings);
+    $store->putPreset('old-key', 'mine', $settings);
+    $store->put('new-key', ['order' => ['keep'], 'hidden' => [], 'entry_point' => null, 'action' => null]);
+
+    $store->migrateKey('old-key', 'new-key');
+
+    expect($store->get('new-key')['order'])->toBe(['keep'])
+        ->and($store->listPresets('new-key'))->toBe(['mine'])
+        ->and($store->get('old-key'))->toBeNull()
+        ->and($store->listPresets('old-key'))->toBe([]);
+});
+
+it('migrates keys in the database store without clobbering the target', function () {
+    $migration = require __DIR__ . '/../database/migrations/create_formsettings_table.php.stub';
+    $migration->up();
+
+    $store = new DatabaseStore;
+    $settings = ['order' => [], 'hidden' => ['a'], 'entry_point' => null, 'action' => null];
+
+    $store->put('old-key', $settings);
+    $store->putPreset('old-key', 'mine', $settings);
+    $store->putPreset('old-key', 'both', $settings);
+    $store->put('new-key', ['order' => ['keep'], 'hidden' => [], 'entry_point' => null, 'action' => null]);
+    $store->putPreset('new-key', 'both', ['order' => ['target'], 'hidden' => [], 'entry_point' => null, 'action' => null]);
+
+    $store->migrateKey('old-key', 'new-key');
+
+    expect($store->get('new-key')['order'])->toBe(['keep'])
+        ->and($store->listPresets('new-key'))->toBe(['both', 'mine'])
+        ->and($store->getPreset('new-key', 'both')['order'])->toBe(['target'])
+        ->and(FormSetting::query()->where('key', 'old-key')->count())->toBe(0);
+});
+
 it('publishes, shares and hides presets through the database store', function () {
     $migration = require __DIR__ . '/../database/migrations/create_formsettings_table.php.stub';
     $migration->up();

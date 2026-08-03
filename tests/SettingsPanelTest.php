@@ -409,6 +409,20 @@ it('renders no uncompiled js directives', function () {
     expect($panel->html())->not->toContain('@js(');
 });
 
+it('applies predefined presets sanitized', function () {
+    $panel = makePanel([
+        'predefinedPresets' => [
+            'Quick entry' => ['hidden' => ['color', 'ghost', 'title'], 'entry_point' => 'notes', 'action' => 'save_next'],
+        ],
+    ]);
+
+    $panel->call('applyPredefined', 'Quick entry');
+
+    expect($panel->get('hidden'))->toBe(['color'])
+        ->and($panel->get('entryPoint'))->toBe('notes')
+        ->and($panel->get('action'))->toBe('save_next');
+});
+
 it('saves, applies and deletes presets', function () {
     $panel = makePanel()
         ->call('toggleHidden', 'color')

@@ -88,4 +88,17 @@ class SessionStore implements SettingsStore
     {
         session()->put("formsettings-usage.{$key}", $usage);
     }
+
+    public function migrateKey(string $from, string $to): void
+    {
+        foreach (['formsettings', 'formsettings-presets', 'formsettings-published', 'formsettings-hidden-shared', 'formsettings-usage'] as $bucket) {
+            $value = session()->get("{$bucket}.{$from}");
+
+            if ($value !== null && session()->get("{$bucket}.{$to}") === null) {
+                session()->put("{$bucket}.{$to}", $value);
+            }
+
+            session()->forget("{$bucket}.{$from}");
+        }
+    }
 }

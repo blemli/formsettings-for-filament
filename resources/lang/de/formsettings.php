@@ -4,6 +4,7 @@ return [
     'gear_label' => 'Formular-Einstellungen',
     'heading' => 'Formular-Einstellungen',
     'reset' => 'Zurücksetzen',
+    'predefined_preset' => 'Mitgelieferte Vorlage',
     'entry_point' => 'Als Einstiegspunkt festlegen',
     'hide_field' => 'Feld ausblenden',
     'show_field' => 'Feld einblenden',

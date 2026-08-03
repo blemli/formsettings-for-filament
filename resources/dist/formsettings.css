@@ -10,6 +10,15 @@
     padding: 1.5rem;
 }
 
+/* Tuning a form is desktop work — the gear hides on small screens
+   unless the plugin opts in via showOnMobile(). Saved settings still
+   apply on mobile; only the panel is unreachable there. */
+@media (max-width: 767px) {
+    .formsettings-gear.formsettings-hide-mobile {
+        display: none;
+    }
+}
+
 /* Rows must never overflow the panel: labels shrink and truncate,
    icons and buttons keep their size. Without min-width: 0, flex/grid
    children refuse to shrink below their content width, which squashed
@@ -135,6 +144,10 @@
 
 .dark .formsettings-panel .formsettings-hidden-toggle:hover {
     color: var(--color-gray-300, rgb(209 213 219));
+}
+
+.formsettings-panel .formsettings-predefined-icon {
+    color: var(--color-gray-400, rgb(156 163 175));
 }
 
 /* The dropdown uses its own width class (passed via the dropdown's

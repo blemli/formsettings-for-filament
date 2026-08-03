@@ -162,7 +162,7 @@
         </x-filament::input.wrapper>
     @endif
 
-    @if ($presetsEnabled)
+    @if ($presetsEnabled || $predefinedPresets !== [])
         <div class="fi-ta-col-manager-header">
             <h3 class="fi-ta-col-manager-heading">
                 {{ __('formsettings-for-filament::formsettings.presets') }}
@@ -170,6 +170,26 @@
         </div>
 
         <div class="fi-ta-col-manager-items">
+            @foreach (array_keys($predefinedPresets) as $predefined)
+                <div class="fi-ta-col-manager-item" wire:key="formsettings-predefined-{{ $predefined }}">
+                    <label class="fi-ta-col-manager-label">
+                        <x-filament::link
+                            tag="button"
+                            color="warning"
+                            wire:click="applyPredefined({{ \Illuminate\Support\Js::from($predefined) }})"
+                        >
+                            {{ $predefined }}
+                        </x-filament::link>
+
+                        <span
+                            class="formsettings-predefined-icon"
+                            title="{{ __('formsettings-for-filament::formsettings.predefined_preset') }}"
+                        >
+                            {{ generate_icon_html('heroicon-o-bolt', size: IconSize::Small) }}
+                        </span>
+                    </label>
+                </div>
+            @endforeach
             @foreach ($presets as $preset)
                 @php
                     $isPublished = in_array($preset, $publishedPresets, true);
@@ -291,25 +311,27 @@
                 @endif
             @endif
 
-            <div class="fi-ta-col-manager-item">
-                <x-filament::input.wrapper :valid="! $errors->has('newPresetName')">
-                    <x-filament::input
-                        type="text"
-                        wire:model.live.debounce.500ms="newPresetName"
-                        wire:keydown.enter="savePreset"
-                        :placeholder="__('formsettings-for-filament::formsettings.preset_name')"
-                    />
-                </x-filament::input.wrapper>
+            @if ($presetsEnabled)
+                <div class="fi-ta-col-manager-item">
+                    <x-filament::input.wrapper :valid="! $errors->has('newPresetName')">
+                        <x-filament::input
+                            type="text"
+                            wire:model.live.debounce.500ms="newPresetName"
+                            wire:keydown.enter="savePreset"
+                            :placeholder="__('formsettings-for-filament::formsettings.preset_name')"
+                        />
+                    </x-filament::input.wrapper>
 
-                <button
-                    type="button"
-                    class="fi-icon-btn {{ $confirmingOverwrite !== null ? 'formsettings-overwrite' : '' }}"
-                    wire:click="savePreset"
-                    title="{{ $confirmingOverwrite !== null ? __('formsettings-for-filament::formsettings.overwrite_preset') : __('formsettings-for-filament::formsettings.save_preset') }}"
-                >
-                    {{ generate_icon_html($confirmingOverwrite !== null ? 'heroicon-o-fire' : 'heroicon-o-plus', size: IconSize::Small) }}
-                </button>
-            </div>
+                    <button
+                        type="button"
+                        class="fi-icon-btn {{ $confirmingOverwrite !== null ? 'formsettings-overwrite' : '' }}"
+                        wire:click="savePreset"
+                        title="{{ $confirmingOverwrite !== null ? __('formsettings-for-filament::formsettings.overwrite_preset') : __('formsettings-for-filament::formsettings.save_preset') }}"
+                    >
+                        {{ generate_icon_html($confirmingOverwrite !== null ? 'heroicon-o-fire' : 'heroicon-o-plus', size: IconSize::Small) }}
+                    </button>
+                </div>
+            @endif
 
             @error('newPresetName')
                 {{-- wire:key remounts the element when the message

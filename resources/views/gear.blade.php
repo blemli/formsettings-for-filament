@@ -17,6 +17,7 @@
     <div
         x-data
         x-on:formsettings-updated.window="$wire.$refresh()"
+        class="formsettings-gear {{ $manager->plugin()?->isShownOnMobile() ? '' : 'formsettings-hide-mobile' }}"
         data-formsettings-formkey="{{ $formKey }}"
         @if ($learningEnabled) data-formsettings-learn="true" @endif
         @if ($selectedLabel) data-formsettings-selected-label="{{ $selectedLabel }}" @endif
@@ -42,6 +43,7 @@
                 'learningEnabled' => $learningEnabled,
                 'learnAfter' => $manager->plugin()?->learningThreshold() ?? 5,
                 'suggestHiding' => ! $page instanceof \Filament\Resources\Pages\EditRecord,
+                'predefinedPresets' => $manager->predefinedFor($page),
             ], key('formsettings-panel-' . $formKey))
         </x-filament::dropdown>
 

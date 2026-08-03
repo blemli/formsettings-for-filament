@@ -82,4 +82,11 @@ interface SettingsStore
      * @param  array<string, mixed>  $usage
      */
     public function putUsage(string $key, array $usage): void;
+
+    /**
+     * Move everything stored under one key to another, skipping
+     * records that already exist at the target — used when
+     * perResource() consolidates old per-page keys.
+     */
+    public function migrateKey(string $from, string $to): void;
 }

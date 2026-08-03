@@ -148,6 +148,21 @@ class DatabaseStore implements SettingsStore
         );
     }
 
+    public function migrateKey(string $from, string $to): void
+    {
+        foreach ($this->query($from)->get() as $row) {
+            $collides = $this->query($to)
+                ->when(
+                    $row->preset === null,
+                    fn (Builder $query) => $query->whereNull('preset'),
+                    fn (Builder $query) => $query->where('preset', $row->preset),
+                )
+                ->exists();
+
+            $collides ? $row->delete() : $row->update(['key' => $to]);
+        }
+    }
+
     /**
      * @return Builder<FormSetting>
      */

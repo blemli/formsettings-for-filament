@@ -19,6 +19,14 @@ class SettingsPanel extends Component
      */
     public array $fields = [];
 
+    /**
+     * Developer-shipped presets from FormSettingsPlugin::predefined(),
+     * keyed by name. Applied on request, never automatically.
+     *
+     * @var array<string, array<string, mixed>>
+     */
+    public array $predefinedPresets = [];
+
     /** @var array<string, string> */
     public array $actionOptions = [];
 
@@ -246,6 +254,11 @@ class SettingsPanel extends Component
     public function applyPreset(string $name): void
     {
         $this->applySettings($this->store()->getPreset($this->formKey, $name));
+    }
+
+    public function applyPredefined(string $name): void
+    {
+        $this->applySettings($this->predefinedPresets[$name] ?? null);
     }
 
     public function deletePreset(string $name): void

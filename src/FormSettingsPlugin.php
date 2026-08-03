@@ -27,6 +27,16 @@ class FormSettingsPlugin implements Plugin
 
     protected bool | Closure $hasSaveAndBackButton = false;
 
+    /** @var array<class-string> | Closure */
+    protected array | Closure $except = [];
+
+    protected bool | Closure $showOnMobile = false;
+
+    protected bool | Closure $isPerResource = false;
+
+    /** @var array<class-string, array<string, array<string, mixed>>> */
+    protected array $predefined = [];
+
     protected bool | string | Closure $authorization = true;
 
     public function getId(): string
@@ -108,6 +118,91 @@ class FormSettingsPlugin implements Plugin
         $value = $this->publishing instanceof Closure ? ($this->publishing)() : $this->publishing;
 
         return is_array($value) ? $value : [];
+    }
+
+    /**
+     * Share one settings record per resource, so users configure the
+     * form once instead of separately on Create and Edit. Existing
+     * per-page settings are migrated the first time the resource key
+     * comes up empty.
+     */
+    public function perResource(bool | Closure $condition = true): static
+    {
+        $this->isPerResource = $condition;
+
+        return $this;
+    }
+
+    public function isPerResource(): bool
+    {
+        return (bool) $this->evaluate($this->isPerResource);
+    }
+
+    /**
+     * Developer-shipped presets, keyed by resource or page class.
+     * They appear in every user's panel but are never applied
+     * automatically.
+     *
+     * @param  array<class-string, array<string, array<string, mixed>>>  $presets
+     */
+    public function predefined(array $presets): static
+    {
+        $this->predefined = [...$this->predefined, ...$presets];
+
+        return $this;
+    }
+
+    /**
+     * @return array<class-string, array<string, array<string, mixed>>>
+     */
+    public function getPredefined(): array
+    {
+        return $this->predefined;
+    }
+
+    /**
+     * Pages that never get the gear, even in global mode and even with
+     * the HasFormSettings trait. Pass page class names (parent classes
+     * match too) or a closure receiving the page.
+     *
+     * @param  array<class-string> | Closure  $pages
+     */
+    public function except(array | Closure $pages): static
+    {
+        $this->except = $pages;
+
+        return $this;
+    }
+
+    public function isExcepted(object $livewire): bool
+    {
+        if ($this->except instanceof Closure) {
+            return (bool) ($this->except)($livewire);
+        }
+
+        foreach ($this->except as $class) {
+            if ($livewire instanceof $class) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The gear is hidden on small screens by default — tuning a form
+     * is desktop work. Call this to show it on mobile too.
+     */
+    public function showOnMobile(bool | Closure $condition = true): static
+    {
+        $this->showOnMobile = $condition;
+
+        return $this;
+    }
+
+    public function isShownOnMobile(): bool
+    {
+        return (bool) $this->evaluate($this->showOnMobile);
     }
 
     /**

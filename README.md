@@ -22,14 +22,18 @@ use Blemli\FormSettings\FormSettingsPlugin;
 
 $panel->plugin(
     FormSettingsPlugin::make()
-        ->optIn()      // dont show the gear anywhere except on Pages with the HasFormSettings Trait
         ->persist()    // … settings per user in the DB instead of the session
         ->presets()    // … named presets
-        ->publish([Profanity::make()])  // … users can share presets with ohters (requires persist(); you can validate the name)
+        ->publish([Profanity::make()])  // … users can share presets with ohters (requires persist)
         ->ignoreGroups(['English', 'Deutsch'])   // … tabs that should NOT group the panel (e.g. translation tabs)
         ->saveAndBackButton()   // to quickly edit things
-        ->learn(after: 5)   // … quiet usage-based suggestions inside the panel "you often start in xyz, set as entrypoint?"
+        ->learn(after: 5)   // … quiet suggestions inside the panel "you often start in xyz, set as entrypoint?"
+        ->except([EditPost::class])   // never show the gear on these pages
+        ->showOnMobile()   // by default the gear hides on small screens
+        ->perResource()   // one settings record per resource instead of per page
+        ->predefined([PostResource::class => ['Quick entry' => ['hidden' => ['tags']]]])   // ship presets with your app
         ->authorize('use-formsettings')   // only show the settings to users which pass this gate
+        ->optIn()      // dont show the gear anywhere except on Pages with the HasFormSettings Trait
 );
 ```
 

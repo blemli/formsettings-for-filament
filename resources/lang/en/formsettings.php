@@ -4,6 +4,7 @@ return [
     'gear_label' => 'Form settings',
     'heading' => 'Form settings',
     'reset' => 'Reset',
+    'predefined_preset' => 'Built-in preset',
     'entry_point' => 'Set as entry point',
     'hide_field' => 'Hide field',
     'show_field' => 'Show field',

@@ -76,23 +76,26 @@ class FormSettingsServiceProvider extends PackageServiceProvider
         Field::configureUsing(function (Field $field): void {
             $manager = fn (): FormSettings => app(FormSettings::class);
 
+            // The hide setting sits in both visibility slots: resource code
+            // may replace either one (->hidden(), ->hiddenOn(), ->visible()),
+            // and Filament ANDs the two — the surviving slot still hides.
             $field->hidden(fn (Field $component): bool => $manager()->fieldHidden($component));
+            $field->visible(fn (Field $component): bool => ! $manager()->fieldHidden($component));
             $field->disabled(fn (Field $component): bool => $manager()->fieldHidden($component));
             $field->autofocus(fn (Field $component): bool => $manager()->fieldIsEntryPoint($component));
 
-            $attributes = function (Field $component) use ($manager): array {
+            // Markers live on the field's root element — input-level
+            // attributes don't survive FilePond & friends replacing the
+            // input, and non-native selects never render them at all.
+            $field->extraAttributes(function (Field $component) use ($manager): array {
                 $attributes = [];
 
-                if (($index = $manager()->fieldTabIndex($component)) !== null) {
-                    $attributes['tabindex'] = $index;
+                if (($name = $manager()->fieldLearnName($component)) !== null) {
+                    $attributes['data-formsettings-name'] = $name;
                 }
 
                 if ($manager()->fieldIsEntryPoint($component)) {
                     $attributes['data-formsettings-entry'] = 'true';
-                }
-
-                if (($name = $manager()->fieldLearnName($component)) !== null) {
-                    $attributes['data-formsettings-name'] = $name;
                 }
 
                 if ($manager()->fieldStartsTab($component)) {
@@ -100,12 +103,15 @@ class FormSettingsServiceProvider extends PackageServiceProvider
                 }
 
                 return $attributes;
-            };
+            }, merge: true);
 
+            // tabindex only does its job on the focusable element itself.
             if (method_exists($field, 'extraInputAttributes')) {
-                $field->extraInputAttributes($attributes, merge: true);
-            } else {
-                $field->extraAttributes($attributes, merge: true);
+                $field->extraInputAttributes(function (Field $component) use ($manager): array {
+                    $index = $manager()->fieldTabIndex($component);
+
+                    return $index === null ? [] : ['tabindex' => $index];
+                }, merge: true);
             }
         });
     }

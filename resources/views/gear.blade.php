@@ -24,7 +24,17 @@
         @if ($learningEnabled) data-formsettings-learn="true" @endif
         @if ($selectedLabel) data-formsettings-selected-label="{{ $selectedLabel }}" @endif
     >
-        <x-filament::dropdown placement="bottom-end" shift width="formsettings-width" max-height="32rem">
+        {{-- The wire:key makes Filament render the dropdown panel with
+             wire:ignore.self, so its client-side open state survives the
+             page refresh that applies settings changes live — without
+             it, hiding a field would slam the panel shut. --}}
+        <x-filament::dropdown
+            placement="bottom-end"
+            shift
+            width="formsettings-width"
+            max-height="32rem"
+            wire:key="formsettings-dropdown-{{ $formKey }}"
+        >
             <x-slot name="trigger">
                 <x-filament::icon-button
                     icon="heroicon-o-cog-6-tooth"

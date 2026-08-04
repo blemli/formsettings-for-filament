@@ -2,6 +2,11 @@
 
 All notable changes to `formsettings-for-filament` will be documented in this file.
 
+## v0.4.1 - 2026-08-04
+
+- Fixed: hiding or showing a field slammed the settings panel shut — the page refresh that applies the change live morphed the dropdown back to its closed server-rendered state. The dropdown now carries a `wire:key`, which makes Filament render its panel with `wire:ignore.self` (the same guard Filament's table column manager uses), so the panel stays open while the form updates underneath
+- Verified in the browser against the demo app: hide/show round-trip with the panel staying open, badge and panel rows updating live, click-away still closing the dropdown
+
 ## v0.4.0 - 2026-08-03
 
 **Behavior change:** the gear is now hidden on small screens by default — call `->showOnMobile()` to keep it. Saved settings still apply on mobile; only the panel is unreachable there.

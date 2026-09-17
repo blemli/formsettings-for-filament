@@ -6,6 +6,7 @@ use Blemli\FormSettings\FormSettings;
 use Blemli\FormSettings\Support\RecordNavigator;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Support\Facades\FilamentView;
 use Livewire\ComponentHook;
 
 use function Livewire\wrap;
@@ -117,10 +118,16 @@ class SaveActionHook extends ComponentHook
         return $action === $manager->defaultAction($page) ? null : $action;
     }
 
-    protected function redirect(object $page, ?string $url): void
+    /**
+     * Same call Filament's own save() makes: in a panel with SPA mode the
+     * redirect is a Livewire navigation that keeps the document alive
+     * (scroll, audio context, user activation …) — a full page load would
+     * drop all of that on every «save & back».
+     */
+    public function redirect(object $page, ?string $url): void
     {
         if ($url !== null) {
-            $page->redirect($url);
+            $page->redirect($url, navigate: FilamentView::hasSpaMode($url));
         }
     }
 }

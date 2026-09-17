@@ -2,6 +2,12 @@
 
 All notable changes to `formsettings-for-filament` will be documented in this file.
 
+## v0.4.2 - 2026-09-17
+
+### Fixed
+
+- «Save & back» / «Save & next» redirect with a Livewire navigation in SPA panels — like Filament's own save — instead of a full page load. The document (scroll, audio context, user activation) survives, so e.g. a success sound after ⌘S plays at once in Safari and Firefox.
+
 ## v0.4.1 - 2026-08-04
 
 - Fixed: hiding or showing a field slammed the settings panel shut — the page refresh that applies the change live morphed the dropdown back to its closed server-rendered state. The dropdown now carries a `wire:key`, which makes Filament render its panel with `wire:ignore.self` (the same guard Filament's table column manager uses), so the panel stays open while the form updates underneath

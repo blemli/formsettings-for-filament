@@ -47,13 +47,19 @@
             : marked.querySelector('input, select, textarea, button, [tabindex]')
     }
 
-    // The entry point may live inside an inactive Filament tab or a
-    // collapsed section. Both open themselves on an `expand` event (the
-    // same hook Filament uses to reveal validation errors), so fire it on
-    // every concealing ancestor before trying to focus. The start tab only
-    // opens tabs: collapsed sections keep the state the form author chose.
+    // The entry point may live inside an inactive Filament tab, a
+    // collapsed section or a collapsed repeater / builder item. All of
+    // them open on an `expand` event (the same hook Filament uses to
+    // reveal validation errors), so fire it on every concealing ancestor
+    // before trying to focus. The start tab only opens tabs: collapsed
+    // containers keep the state the form author chose.
     const TAB_CONCEALER = '.fi-sc-tabs-tab:not(.fi-active)'
-    const ENTRY_CONCEALER = `${TAB_CONCEALER}, .fi-section.fi-collapsed`
+    const ENTRY_CONCEALER = [
+        TAB_CONCEALER,
+        '.fi-section.fi-collapsed',
+        '.fi-fo-repeater-item.fi-collapsed',
+        '.fi-fo-builder-item.fi-collapsed',
+    ].join(', ')
 
     const revealEntryPoint = (target, concealer = ENTRY_CONCEALER) => {
         let revealed = false
@@ -75,19 +81,25 @@
             return
         }
 
-        const doFocus = () => {
-            target.focus({ preventScroll: false })
-            target.select?.()
+        // Revealed content shows up asynchronously: a section drops its
+        // class in a microtask, a repeater item's x-show waits an animation
+        // frame (a timer in background tabs). Retry until the target is
+        // displayed instead of guessing the delay.
+        const focusWhenDisplayed = (attemptsLeft) => {
+            if (target.getClientRects().length > 0) {
+                target.focus({ preventScroll: false })
+                target.select?.()
+
+                return
+            }
+
+            if (attemptsLeft > 0) {
+                setTimeout(() => focusWhenDisplayed(attemptsLeft - 1), 16)
+            }
         }
 
-        if (revealEntryPoint(target)) {
-            // Alpine drops the concealing class in a microtask; a macrotask
-            // runs after it and, unlike an animation frame, also fires while
-            // the tab is in the background.
-            setTimeout(doFocus, 0)
-        } else {
-            doFocus()
-        }
+        revealEntryPoint(target)
+        focusWhenDisplayed(30)
     }
 
     // Other scripts (Filament, plugins, native autofocus) may focus their

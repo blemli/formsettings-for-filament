@@ -47,21 +47,22 @@
             : marked.querySelector('input, select, textarea, button, [tabindex]')
     }
 
-    // The entry point may live inside an inactive Filament tab. Tab
-    // panels activate themselves on an `expand` event (the same hook
-    // Filament uses to reveal validation errors), so fire it on every
-    // concealing ancestor before trying to focus.
-    const revealEntryPoint = (target) => {
-        let revealed = false
-        let panel = target.closest('.fi-sc-tabs-tab:not(.fi-active)')
+    // The entry point may live inside an inactive Filament tab or a
+    // collapsed section. Both open themselves on an `expand` event (the
+    // same hook Filament uses to reveal validation errors), so fire it on
+    // every concealing ancestor before trying to focus. The start tab only
+    // opens tabs: collapsed sections keep the state the form author chose.
+    const TAB_CONCEALER = '.fi-sc-tabs-tab:not(.fi-active)'
+    const ENTRY_CONCEALER = `${TAB_CONCEALER}, .fi-section.fi-collapsed`
 
-        while (panel) {
-            panel.dispatchEvent(new CustomEvent('expand'))
+    const revealEntryPoint = (target, concealer = ENTRY_CONCEALER) => {
+        let revealed = false
+        let container = target.closest(concealer)
+
+        while (container) {
+            container.dispatchEvent(new CustomEvent('expand'))
             revealed = true
-            panel =
-                panel.parentElement?.closest(
-                    '.fi-sc-tabs-tab:not(.fi-active)',
-                ) ?? null
+            container = container.parentElement?.closest(concealer) ?? null
         }
 
         return revealed
@@ -80,7 +81,10 @@
         }
 
         if (revealEntryPoint(target)) {
-            requestAnimationFrame(doFocus)
+            // Alpine drops the concealing class in a microtask; a macrotask
+            // runs after it and, unlike an animation frame, also fires while
+            // the tab is in the background.
+            setTimeout(doFocus, 0)
         } else {
             doFocus()
         }
@@ -495,7 +499,7 @@
         const field = document.querySelector('[data-formsettings-start-tab]')
 
         if (field) {
-            revealEntryPoint(field)
+            revealEntryPoint(field, TAB_CONCEALER)
         }
     }
 

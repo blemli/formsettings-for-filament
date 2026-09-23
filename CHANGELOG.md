@@ -2,6 +2,12 @@
 
 All notable changes to `formsettings-for-filament` will be documented in this file.
 
+## v0.4.3 - 2026-09-23
+
+### Fixed
+
+- The entry point now also works inside collapsed sections and collapsed repeater / builder items: they open, then the field takes focus — also in a background tab. The start tab still only switches tabs.
+
 ## v0.4.2 - 2026-09-17
 
 ### Fixed

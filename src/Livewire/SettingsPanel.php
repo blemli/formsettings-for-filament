@@ -68,6 +68,34 @@ class SettingsPanel extends Component
     public array $publishedPresets = [];
 
     /**
+     * Operations ("create", "edit") a preset of this form can be marked
+     * quick for — whatever pages the form key covers.
+     *
+     * @var array<string>
+     */
+    public array $quickOperations = [];
+
+    /**
+     * Own presets marked quick, per operation.
+     *
+     * @var array<string, array<string>>
+     */
+    public array $quickPresets = [];
+
+    /**
+     * Name of the preset this page was opened with for this visit only
+     * (?formsettings-preset=…), until the user keeps or leaves it.
+     */
+    public ?string $visitPreset = null;
+
+    /**
+     * That preset's settings, as the page applies them.
+     *
+     * @var array<string, mixed>|null
+     */
+    public ?array $visitSettings = null;
+
+    /**
      * Own presets whose settings differ from the defaults — the only
      * ones worth publishing; default-config presets are noise.
      *
@@ -103,7 +131,12 @@ class SettingsPanel extends Component
 
         abort_unless($manager->plugin()?->isAuthorized() ?? true, 403);
 
-        $settings = $manager->normalize($this->store()->get($this->formKey));
+        // A visit shows the preset the page is using — not what is stored.
+        $settings = $this->visitPreset !== null && $this->visitSettings !== null
+            ? $manager->normalize($this->visitSettings)
+            : $manager->normalize($this->store()->get($this->formKey));
+
+        $this->visitSettings = null;
 
         $this->order = $settings['order'];
         $this->hidden = $settings['hidden'];
@@ -252,9 +285,69 @@ class SettingsPanel extends Component
         $this->confirmingOverwrite = null;
         $this->resetErrorBag('newPresetName');
 
-        $this->store()->putPreset($this->formKey, $name, $this->currentSettings());
+        // Overwriting a preset changes its layout, not what it is used for.
+        $flags = array_intersect_key(
+            $this->store()->getPreset($this->formKey, $name) ?? [],
+            array_flip(['quick_create', 'quick_edit']),
+        );
+
+        $this->store()->putPreset($this->formKey, $name, [...$this->currentSettings(), ...$flags]);
         $this->newPresetName = '';
         $this->loadPresets();
+    }
+
+    /**
+     * Mark (or unmark) one of the user's presets as quick create / quick
+     * edit: it is then offered wherever FormSettings::quickActions() is
+     * listed, and opens the form with this preset for one visit.
+     */
+    public function toggleQuick(string $name, string $operation): void
+    {
+        if (! in_array($name, $this->presets, true) || ! in_array($operation, $this->quickOperations, true)) {
+            return;
+        }
+
+        app(FormSettings::class)->setPresetQuick(
+            $this->formKey,
+            $name,
+            $operation,
+            ! in_array($name, $this->quickPresets[$operation] ?? [], true),
+        );
+
+        $this->loadPresets();
+    }
+
+    /**
+     * Make the preset of this visit the user's settings.
+     */
+    public function keepVisit(): void
+    {
+        if ($this->visitPreset === null) {
+            return;
+        }
+
+        $this->persistSettings();
+    }
+
+    /**
+     * Leave the preset of this visit and go back to the user's settings.
+     */
+    public function leaveVisit(): void
+    {
+        if ($this->visitPreset === null) {
+            return;
+        }
+
+        $settings = app(FormSettings::class)->normalize($this->store()->get($this->formKey));
+
+        $this->order = $settings['order'];
+        $this->hidden = $settings['hidden'];
+        $this->entryPoint = $settings['entry_point'];
+        $this->action = $settings['action'] ?? array_key_first($this->actionOptions);
+        $this->startTab = $settings['start_tab'];
+        $this->visitPreset = null;
+
+        $this->dispatch('formsettings-updated');
     }
 
     public function applyPreset(string $name): void
@@ -714,6 +807,10 @@ class SettingsPanel extends Component
             $this->store()->put($this->formKey, $settings);
         }
 
+        // Whatever was just saved is what the user sees — the visit with a
+        // borrowed preset is over; the page drops it on this refresh.
+        $this->visitPreset = null;
+
         $this->dispatch('formsettings-updated');
     }
 
@@ -744,22 +841,13 @@ class SettingsPanel extends Component
             return;
         }
 
-        $settings = app(FormSettings::class)->normalize($settings);
+        $settings = app(FormSettings::class)->sanitize($settings, $this->fields, $this->actionOptions);
 
-        $known = array_column($this->fields, 'name');
-        $hideable = array_column(array_filter($this->fields, fn (array $field): bool => $field['hideable']), 'name');
-
-        $this->order = array_values(array_intersect($settings['order'], $known));
-        $this->hidden = array_values(array_intersect($settings['hidden'], $hideable));
-
-        $entry = $settings['entry_point'];
-        $this->entryPoint = (in_array($entry, $known, true) && ! in_array($entry, $this->hidden, true)) ? $entry : null;
-
-        $action = $settings['action'];
-        $this->action = array_key_exists((string) $action, $this->actionOptions) ? $action : array_key_first($this->actionOptions);
-
-        $knownGroups = array_filter(array_unique(array_column($this->fields, 'group')));
-        $this->startTab = in_array($settings['start_tab'], $knownGroups, true) ? $settings['start_tab'] : null;
+        $this->order = $settings['order'];
+        $this->hidden = $settings['hidden'];
+        $this->entryPoint = $settings['entry_point'];
+        $this->action = $settings['action'] ?? array_key_first($this->actionOptions);
+        $this->startTab = $settings['start_tab'];
 
         $this->persistSettings();
     }
@@ -860,6 +948,13 @@ class SettingsPanel extends Component
         $this->publishablePresets = [];
         $this->sharedPresets = [];
         $this->hiddenSharedPresets = [];
+        $this->quickPresets = [];
+
+        if ($this->presetsEnabled) {
+            foreach ($this->quickOperations as $operation) {
+                $this->quickPresets[$operation] = app(FormSettings::class)->quickPresets($this->formKey, $operation);
+            }
+        }
 
         if (! $this->presetsEnabled || ! $this->publishingEnabled) {
             return;

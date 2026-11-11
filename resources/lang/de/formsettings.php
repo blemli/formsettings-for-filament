@@ -39,6 +39,13 @@ return [
     'save_preset' => 'Vorlage speichern',
     'overwrite_preset' => 'Vorlage überschreiben',
     'delete_preset' => 'Vorlage löschen',
+    'quick_create' => 'Als Schnell-Erstellen anbieten',
+    'unquick_create' => 'Nicht mehr als Schnell-Erstellen anbieten',
+    'quick_edit' => 'Als Schnell-Bearbeiten anbieten',
+    'unquick_edit' => 'Nicht mehr als Schnell-Bearbeiten anbieten',
+    'visit' => 'Preset «:name» — nur für diesen Aufruf.',
+    'visit_keep' => 'Behalten',
+    'visit_leave' => 'Meine Einstellungen',
 
     'actions' => [
         'save' => 'Speichern',

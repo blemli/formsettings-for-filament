@@ -190,6 +190,28 @@ class FormSettingsPlugin implements Plugin
     }
 
     /**
+     * isExcepted() for code that only knows the page's class. A closure
+     * passed to except() needs the page itself and cannot be asked here —
+     * such pages count as not excepted.
+     *
+     * @param  class-string  $page
+     */
+    public function isExceptedClass(string $page): bool
+    {
+        if ($this->except instanceof Closure) {
+            return false;
+        }
+
+        foreach ($this->except as $class) {
+            if (is_a($page, $class, allow_string: true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * The gear is hidden on small screens by default — tuning a form
      * is desktop work. Call this to show it on mobile too.
      */

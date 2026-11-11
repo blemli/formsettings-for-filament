@@ -6,6 +6,7 @@ use Blemli\FormSettings\Commands\GraveyardCommand;
 use Blemli\FormSettings\Commands\UninstallCommand;
 use Blemli\FormSettings\Livewire\SaveActionHook;
 use Blemli\FormSettings\Livewire\SettingsPanel;
+use Blemli\FormSettings\Livewire\VisitPresetHook;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
 use Filament\Support\Assets\Asset;
@@ -53,6 +54,7 @@ class FormSettingsServiceProvider extends PackageServiceProvider
 
         Livewire::component('formsettings-panel', SettingsPanel::class);
         Livewire::componentHook(SaveActionHook::class);
+        Livewire::componentHook(VisitPresetHook::class);
 
         // Developer guardrail: ->formSettingsLocked() pins a field —
         // users can neither hide nor reorder it.

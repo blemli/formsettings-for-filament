@@ -39,6 +39,13 @@ return [
     'save_preset' => 'Save preset',
     'overwrite_preset' => 'Overwrite preset',
     'delete_preset' => 'Delete preset',
+    'quick_create' => 'Offer as quick create',
+    'unquick_create' => 'No longer offer as quick create',
+    'quick_edit' => 'Offer as quick edit',
+    'unquick_edit' => 'No longer offer as quick edit',
+    'visit' => 'Preset ":name" — this visit only.',
+    'visit_keep' => 'Keep',
+    'visit_leave' => 'My settings',
 
     'actions' => [
         'save' => 'Save',

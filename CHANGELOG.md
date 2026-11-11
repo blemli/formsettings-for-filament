@@ -2,6 +2,15 @@
 
 All notable changes to `formsettings-for-filament` will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Quick presets: mark one of your presets as quick create / quick edit with the new toggle next to it in the panel (predefined presets take `'quick_create' => true` / `'quick_edit' => true`). The flags live inside the preset — no migration.
+- `FormSettings::quickActions($resource, 'create' | 'edit')` returns one plain Filament action per quick preset, for any action group; [splitbutton-for-filament](https://github.com/blemli/splitbutton-for-filament) lists them on its own. Neither package requires the other.
+- Presets for one visit: `?formsettings-preset=Name` (`&formsettings-source=predefined` for a built-in one) opens a Create/Edit page laid out by that preset without touching the user's saved settings. The panel says so and offers "Keep" and "My settings"; any change in the panel ends the visit.
+- `FormSettings::sanitize()`, `keyFor()` with a page class, `isEnabledForClass()`, `urlWithPreset()`.
+
 ## v0.4.3 - 2026-09-23
 
 ### Fixed

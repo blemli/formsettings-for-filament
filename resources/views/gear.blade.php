@@ -12,11 +12,23 @@
 
     @php
         $learningEnabled = (bool) $manager->plugin()?->hasLearning();
+        $visit = $manager->visitFor($page);
+
+        // Which pages this form key covers decides what a preset can be
+        // marked quick for.
+        $quickOperations = match (true) {
+            ! ($page instanceof \Filament\Resources\Pages\CreateRecord || $page instanceof \Filament\Resources\Pages\EditRecord) => [],
+            (bool) $manager->plugin()?->isPerResource() => \Blemli\FormSettings\FormSettings::QUICK_OPERATIONS,
+            $page instanceof \Filament\Resources\Pages\CreateRecord => ['create'],
+            default => ['edit'],
+        };
     @endphp
 
     <div
         x-data
-        x-on:formsettings-updated.window="$wire.$refresh()"
+        {{-- A pseudo-method the VisitPresetHook answers: a plain refresh
+             that also ends a "this visit only" preset. --}}
+        x-on:formsettings-updated.window="$wire.call('{{ \Blemli\FormSettings\Livewire\VisitPresetHook::REFRESH }}')"
         class="formsettings-gear {{ $manager->plugin()?->isShownOnMobile() ? '' : 'formsettings-hide-mobile' }}"
         data-formsettings-formkey="{{ $formKey }}"
         data-formsettings-arrange-apply="{{ __('formsettings-for-filament::formsettings.arrange_apply') }}"
@@ -56,6 +68,9 @@
                 'learnAfter' => $manager->plugin()?->learningThreshold() ?? 5,
                 'suggestHiding' => ! $page instanceof \Filament\Resources\Pages\EditRecord,
                 'predefinedPresets' => $manager->predefinedFor($page),
+                'quickOperations' => $quickOperations,
+                'visitPreset' => $visit['name'] ?? null,
+                'visitSettings' => $visit ? $manager->settingsFor($page) : null,
             ], key('formsettings-panel-' . $formKey))
         </x-filament::dropdown>
 

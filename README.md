@@ -50,6 +50,12 @@ class EditPost extends EditRecord
 
 
 
+Presets a user marks as quick create / quick edit (the toggle next to the preset) open the form with that preset for one visit only — list them in any action group, or let [splitbutton-for-filament](https://github.com/blemli/splitbutton-for-filament) do it:
+
+```php
+ActionGroup::make(app(FormSettings::class)->quickActions(PostResource::class, 'create'))
+```
+
 Lock single fields against hiding and reordering:
 
 ```php

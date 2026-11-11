@@ -28,6 +28,26 @@
         </div>
     </div>
 
+    @if ($visitPreset !== null)
+        <div class="formsettings-visit" wire:key="formsettings-visit">
+            <span class="formsettings-visit-icon">
+                {{ generate_icon_html('heroicon-o-bolt', size: IconSize::Small) }}
+            </span>
+
+            <span class="formsettings-visit-text">
+                {{ __('formsettings-for-filament::formsettings.visit', ['name' => $visitPreset]) }}
+            </span>
+
+            <x-filament::link tag="button" wire:click="keepVisit">
+                {{ __('formsettings-for-filament::formsettings.visit_keep') }}
+            </x-filament::link>
+
+            <x-filament::link tag="button" color="gray" wire:click="leaveVisit">
+                {{ __('formsettings-for-filament::formsettings.visit_leave') }}
+            </x-filament::link>
+        </div>
+    @endif
+
     @if ($learningEnabled && $this->suggestions !== [])
         <div class="fi-ta-col-manager-items">
             @foreach ($this->suggestions as $suggestion)
@@ -223,6 +243,29 @@
                             {{ $preset }}
                         </x-filament::link>
                     </label>
+
+                    @foreach ($quickOperations as $operation)
+                        @php
+                            $isQuick = in_array($preset, $quickPresets[$operation] ?? [], true);
+                            $quickTitle = __('formsettings-for-filament::formsettings.' . ($isQuick ? 'unquick_' : 'quick_') . $operation);
+                            $quickIcon = match ($operation) {
+                                'create' => $isQuick ? 'heroicon-s-plus-circle' : 'heroicon-o-plus-circle',
+                                default => $isQuick ? 'heroicon-s-pencil-square' : 'heroicon-o-pencil-square',
+                            };
+                            // Blade's js directive does not compile inside
+                            // component-tag attributes — build it in PHP.
+                            $quickClick = 'toggleQuick(' . \Illuminate\Support\Js::from($preset) . ', ' . \Illuminate\Support\Js::from($operation) . ')';
+                        @endphp
+
+                        <x-filament::icon-button
+                            :icon="$quickIcon"
+                            :color="$isQuick ? 'primary' : 'gray'"
+                            size="sm"
+                            :label="$quickTitle"
+                            :tooltip="$quickTitle"
+                            wire:click="{{ $quickClick }}"
+                        />
+                    @endforeach
 
                     @if ($publishingEnabled)
                         @php

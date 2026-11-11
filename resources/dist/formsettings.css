@@ -277,3 +277,35 @@
         gap: 0.5rem;
     }
 }
+
+/* "This visit only": the page was opened with a preset through
+   ?formsettings-preset=… and the user's saved settings are untouched. */
+.formsettings-panel .formsettings-visit {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+    margin-block: 0.5rem 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    background: var(--color-gray-100, rgb(243 244 246));
+    font-size: 0.875rem;
+}
+
+.dark .formsettings-panel .formsettings-visit {
+    background: rgb(255 255 255 / 0.05);
+}
+
+.formsettings-panel .formsettings-visit-icon {
+    display: inline-flex;
+    color: var(--primary-500);
+}
+
+.formsettings-panel .formsettings-visit-text {
+    flex: 1 1 10rem;
+    color: var(--color-gray-700, rgb(55 65 81));
+}
+
+.dark .formsettings-panel .formsettings-visit-text {
+    color: var(--color-gray-200, rgb(229 231 235));
+}

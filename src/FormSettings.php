@@ -7,6 +7,7 @@ use Blemli\FormSettings\Storage\DatabaseStore;
 use Blemli\FormSettings\Storage\SessionStore;
 use Blemli\FormSettings\Storage\SettingsStore;
 use Blemli\FormSettings\Support\FieldIcons;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Hidden;
@@ -14,10 +15,25 @@ use Filament\Resources\Pages\CreateRecord;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Wizard\Step;
+use Illuminate\Database\Eloquent\Model;
 use Throwable;
 
 class FormSettings
 {
+    /**
+     * Query parameter that opens a page with one preset applied for that
+     * visit only — the user's saved settings stay untouched.
+     */
+    public const PRESET_PARAM = 'formsettings-preset';
+
+    /**
+     * Query parameter naming where that preset comes from: the user's own
+     * presets (default) or the developer's predefined() ones.
+     */
+    public const SOURCE_PARAM = 'formsettings-source';
+
+    public const QUICK_OPERATIONS = ['create', 'edit'];
+
     /**
      * @var array<string, array{order: array<string>, hidden: array<string>, entry_point: string|null, action: string|null, start_tab: string|null}>
      */
@@ -30,9 +46,20 @@ class FormSettings
      */
     protected \WeakMap $lockedFields;
 
+    /**
+     * Pages opened with a preset for this visit only, and that preset's
+     * sanitized settings once they were needed.
+     *
+     * @var \WeakMap<object, array{name: string, source: string, settings?: array<string, mixed>}>
+     */
+    protected \WeakMap $visits;
+
+    protected bool $isResolvingVisit = false;
+
     public function __construct()
     {
         $this->lockedFields = new \WeakMap;
+        $this->visits = new \WeakMap;
     }
 
     public function lockField(Field $field, bool $locked = true): void
@@ -51,12 +78,12 @@ class FormSettings
      *
      * @return array<string, array<string, mixed>>
      */
-    public function predefinedFor(object $livewire): array
+    public function predefinedFor(object | string $livewire): array
     {
         $presets = [];
 
         foreach ($this->plugin()?->getPredefined() ?? [] as $class => $named) {
-            $matches = $livewire instanceof $class;
+            $matches = is_a($livewire, $class, allow_string: true);
 
             if (! $matches) {
                 try {
@@ -121,13 +148,19 @@ class FormSettings
             && ($livewire instanceof CreateRecord || $livewire instanceof EditRecord);
     }
 
-    public function keyFor(object $livewire): string
+    /**
+     * The key a page's settings and presets are stored under. Takes a page
+     * instance or — for code that only knows where a link leads — its class.
+     *
+     * @param  object | class-string  $livewire
+     */
+    public function keyFor(object | string $livewire): string
     {
         $panelId = Filament::getCurrentPanel()?->getId() ?? 'default';
-        $subject = $livewire::class;
+        $subject = is_object($livewire) ? $livewire::class : $livewire;
 
         if (($this->plugin()?->isPerResource() ?? false)
-            && ($livewire instanceof CreateRecord || $livewire instanceof EditRecord)) {
+            && (is_a($livewire, CreateRecord::class, allow_string: true) || is_a($livewire, EditRecord::class, allow_string: true))) {
             try {
                 $subject = $livewire::getResource();
             } catch (Throwable) {
@@ -135,6 +168,15 @@ class FormSettings
         }
 
         return $panelId . '::' . str_replace('\\', '.', $subject);
+    }
+
+    /**
+     * @param  object | class-string  $livewire
+     */
+    protected function isFormPage(object | string $livewire): bool
+    {
+        return is_a($livewire, CreateRecord::class, allow_string: true)
+            || is_a($livewire, EditRecord::class, allow_string: true);
     }
 
     /**
@@ -178,6 +220,10 @@ class FormSettings
      */
     public function settingsFor(object $livewire): array
     {
+        if (($visit = $this->visitSettings($livewire)) !== null) {
+            return $visit;
+        }
+
         $key = $this->keyFor($livewire);
 
         return $this->settingsCache[$key] ??= (function () use ($livewire, $key): array {
@@ -377,6 +423,267 @@ class FormSettings
             + ($settings['entry_point'] === null ? 0 : 1)
             + ($settings['start_tab'] === null ? 0 : 1)
             + (($settings['action'] !== null && $settings['action'] !== $this->defaultAction($livewire)) ? 1 : 0);
+    }
+
+    /**
+     * Strip everything from a settings array that does not fit the form:
+     * unknown fields, fields that may not be hidden, a hidden entry
+     * point, an action the page does not offer, an unknown tab. Presets
+     * can be stale or hand-written — they must never hide a required
+     * field.
+     *
+     * @param  array<string, mixed>|null  $settings
+     * @param  array<array{name: string, hideable: bool, group: string|null}>  $fields
+     * @param  array<string, string>  $actionOptions
+     * @return array{order: array<string>, hidden: array<string>, entry_point: string|null, action: string|null, start_tab: string|null}
+     */
+    public function sanitize(?array $settings, array $fields, array $actionOptions): array
+    {
+        $settings = $this->normalize($settings);
+
+        $known = array_column($fields, 'name');
+        $hideable = array_column(array_filter($fields, fn (array $field): bool => $field['hideable']), 'name');
+        $groups = array_filter(array_unique(array_column($fields, 'group')));
+
+        $hidden = array_values(array_intersect($settings['hidden'], $hideable));
+        $entry = $settings['entry_point'];
+
+        return [
+            'order' => array_values(array_intersect($settings['order'], $known)),
+            'hidden' => $hidden,
+            'entry_point' => (in_array($entry, $known, true) && ! in_array($entry, $hidden, true)) ? $entry : null,
+            'action' => array_key_exists((string) $settings['action'], $actionOptions) ? $settings['action'] : null,
+            'start_tab' => in_array($settings['start_tab'], $groups, true) ? $settings['start_tab'] : null,
+        ];
+    }
+
+    /**
+     * Open this page instance with a preset for this visit only: every
+     * setting comes from the preset, nothing is written to the store.
+     */
+    public function startVisit(object $livewire, string $name, string $source = 'own'): void
+    {
+        if ($name === '') {
+            return;
+        }
+
+        $this->visits[$livewire] = [
+            'name' => $name,
+            'source' => $source === 'predefined' ? 'predefined' : 'own',
+        ];
+    }
+
+    public function endVisit(object $livewire): void
+    {
+        unset($this->visits[$livewire]);
+    }
+
+    /**
+     * The preset this page instance was opened with, if any.
+     *
+     * @return array{name: string, source: string}|null
+     */
+    public function visitFor(object $livewire): ?array
+    {
+        $visit = $this->visits[$livewire] ?? null;
+
+        return $visit === null ? null : ['name' => $visit['name'], 'source' => $visit['source']];
+    }
+
+    /**
+     * The settings of the visit's preset, sanitized against the form —
+     * resolved on first use, when the form is there to check against. A
+     * preset that no longer exists quietly ends the visit.
+     *
+     * @return array{order: array<string>, hidden: array<string>, entry_point: string|null, action: string|null, start_tab: string|null}|null
+     */
+    protected function visitSettings(object $livewire): ?array
+    {
+        $visit = $this->visits[$livewire] ?? null;
+
+        if ($visit === null || $this->isResolvingVisit) {
+            return null;
+        }
+
+        if (isset($visit['settings'])) {
+            return $visit['settings'];
+        }
+
+        // Describing the form evaluates field closures that ask for the
+        // settings again — answer those with the stored ones meanwhile.
+        $this->isResolvingVisit = true;
+
+        try {
+            $preset = $visit['source'] === 'predefined'
+                ? ($this->predefinedFor($livewire)[$visit['name']] ?? null)
+                : $this->store()->getPreset($this->keyFor($livewire), $visit['name']);
+
+            if (! is_array($preset) || ! $this->isEnabledFor($livewire)) {
+                unset($this->visits[$livewire]);
+
+                return null;
+            }
+
+            $settings = $this->sanitize($preset, $this->describeFields($livewire), $this->actionOptions($livewire));
+        } catch (Throwable) {
+            unset($this->visits[$livewire]);
+
+            return null;
+        } finally {
+            $this->isResolvingVisit = false;
+        }
+
+        $this->visits[$livewire] = [...$visit, 'settings' => $settings];
+
+        return $settings;
+    }
+
+    /**
+     * Whether a preset's settings carry the quick flag for an operation.
+     *
+     * @param  array<string, mixed>|null  $settings
+     */
+    public function isQuick(?array $settings, string $operation): bool
+    {
+        return in_array($operation, self::QUICK_OPERATIONS, true)
+            && (bool) ($settings["quick_{$operation}"] ?? false);
+    }
+
+    /**
+     * Mark one of the user's presets as a quick create / quick edit
+     * preset. The flag lives inside the preset's settings — no migration.
+     */
+    public function setPresetQuick(string $key, string $name, string $operation, bool $quick = true): void
+    {
+        if (! in_array($operation, self::QUICK_OPERATIONS, true)) {
+            return;
+        }
+
+        $settings = $this->store()->getPreset($key, $name);
+
+        if ($settings === null) {
+            return;
+        }
+
+        $settings["quick_{$operation}"] = $quick;
+
+        $this->store()->putPreset($key, $name, $settings);
+    }
+
+    /**
+     * Names of the user's presets under a key that are marked quick for
+     * the operation.
+     *
+     * @return array<string>
+     */
+    public function quickPresets(string $key, string $operation): array
+    {
+        $store = $this->store();
+
+        return array_values(array_filter(
+            $store->listPresets($key),
+            fn (string $name): bool => $this->isQuick($store->getPreset($key, $name), $operation),
+        ));
+    }
+
+    /**
+     * The URL of a resource page with a preset applied for that visit.
+     *
+     * @param  array<string, mixed>  $parameters
+     */
+    public function urlWithPreset(string $resource, string $operation, string $name, string $source = 'own', array $parameters = []): string
+    {
+        return $resource::getUrl($operation, [
+            ...$parameters,
+            self::PRESET_PARAM => $name,
+            ...($source === 'predefined' ? [self::SOURCE_PARAM => 'predefined'] : []),
+        ]);
+    }
+
+    /**
+     * One Filament action per quick preset of a resource's create or edit
+     * form — each opens that page with the preset applied for the visit.
+     * Plain actions, so they fit any action group (blemli's
+     * splitbutton-for-filament lists them on its own, but nothing here
+     * knows about it). Edit actions need a record and hide without one.
+     *
+     * @param  class-string  $resource
+     * @return array<Action>
+     */
+    public function quickActions(string $resource, string $operation = 'create'): array
+    {
+        $plugin = $this->plugin();
+
+        if (! $plugin?->isAuthorized() || ! $plugin->hasPresets() || ! in_array($operation, self::QUICK_OPERATIONS, true)) {
+            return [];
+        }
+
+        try {
+            $registration = $resource::getPages()[$operation] ?? null;
+            $page = is_object($registration) && method_exists($registration, 'getPage')
+                ? $registration->getPage()
+                : (is_string($registration) ? $registration : null);
+        } catch (Throwable) {
+            return [];
+        }
+
+        if (! is_string($page) || ! $this->isEnabledForClass($page)) {
+            return [];
+        }
+
+        $presets = [];
+
+        foreach ($this->predefinedFor($page) as $name => $settings) {
+            if ($this->isQuick($settings, $operation)) {
+                $presets[(string) $name] = 'predefined';
+            }
+        }
+
+        // A user's own preset wins over a predefined one of the same name.
+        foreach ($this->quickPresets($this->keyFor($page), $operation) as $name) {
+            $presets[$name] = 'own';
+        }
+
+        $actions = [];
+
+        foreach ($presets as $name => $source) {
+            $name = (string) $name;
+
+            $actions[] = Action::make("formsettings-{$operation}-" . substr(md5("{$source}|{$name}"), 0, 8))
+                ->label($name)
+                ->icon('heroicon-o-bolt')
+                ->visible(fn (?Model $record = null): bool => $operation !== 'edit' || $record !== null)
+                ->url(fn (?Model $record = null): string => $this->urlWithPreset(
+                    $resource,
+                    $operation,
+                    $name,
+                    $source,
+                    $operation === 'edit' ? ['record' => $record] : [],
+                ));
+        }
+
+        return $actions;
+    }
+
+    /**
+     * isEnabledFor() for code that only has the page's class: the gear
+     * would show on that page for the current user.
+     *
+     * @param  class-string  $page
+     */
+    public function isEnabledForClass(string $page): bool
+    {
+        $plugin = $this->plugin();
+
+        if (! $plugin?->isAuthorized() || $plugin->isExceptedClass($page)) {
+            return false;
+        }
+
+        if (in_array(HasFormSettings::class, class_uses_recursive($page), true)) {
+            return true;
+        }
+
+        return $plugin->isGlobal() && $this->isFormPage($page);
     }
 
     /**
